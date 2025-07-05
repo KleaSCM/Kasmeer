@@ -260,13 +260,13 @@ class RealDataTrainer:
                     for _, row in training_locations.iterrows():
                         lat, lon = row['latitude'], row['longitude']
                         logger.info(f"Processing location: {str(lat)}, {str(lon)}")
-            location_features = self._extract_location_features(lat, lon)
-            if location_features:
-                feature_vector = self._features_to_vector(location_features)
+                        location_features = self._extract_location_features(lat, lon)
+                        if location_features:
+                            feature_vector = self._features_to_vector(location_features)
                             if feature_vector is not None and len(feature_vector) > 0:
-                    features_list.append(feature_vector)
-                    target = self._generate_realistic_targets(location_features)
-                    targets_list.append(target)
+                                features_list.append(feature_vector)
+                                target = self._generate_realistic_targets(location_features)
+                                targets_list.append(target)
         if features_list and targets_list:
             X = np.array(features_list)
             y = np.array(targets_list)
@@ -445,7 +445,7 @@ class RealDataTrainer:
             logger.warning("Only one training sample available. Training without validation split.")
             training_results = self.nn_system.train(X, y, epochs=epochs, validation_split=0.0)
         else:
-        training_results = self.nn_system.train(X, y, epochs=epochs)
+            training_results = self.nn_system.train(X, y, epochs=epochs)
         model_name = f"real_data_model_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
         self.nn_system.save_model(model_name)
         logger.info(f"Training completed. Model saved as: {model_name}")

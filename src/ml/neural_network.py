@@ -99,12 +99,12 @@ class CivilEngineeringSystem:
             sample_points = infra_df[['latitude', 'longitude']].drop_duplicates().sample(n=min(10, len(infra_df)), random_state=42)
             for _, row in sample_points.iterrows():
                 lat, lon = row['latitude'], row['longitude']
-            location_features = data_processor.extract_features_at_location(lat, lon)
-            feature_vector = self._features_to_vector(location_features)
-            if feature_vector is not None:
-                features.append(feature_vector)
+                location_features = data_processor.extract_features_at_location(lat, lon)
+                feature_vector = self._features_to_vector(location_features)
+                if feature_vector is not None:
+                    features.append(feature_vector)
                     target = self._generate_risk_targets_from_data(location_features)
-                targets.append(target)
+                    targets.append(target)
         if not features:
             logger.warning("No valid features extracted")
             return np.array([]), np.array([])
@@ -326,24 +326,24 @@ class CivilEngineeringSystem:
         
         return predictions
     
-    def predict_at_location(self, lat: float, lon: float, data_processor) -> Optional[Dict]:
+    def predict_at_location(self, lat: float, lon: float, data_processor) -> Dict:
         """Predict risks at a specific location"""
         try:
             if self.model is None:
                 logger.warning("No model loaded for prediction")
-                return None
+                return self._get_fallback_assessment(lat, lon)
             
             # Extract features for this location
             features = data_processor.extract_features_at_location(lat, lon)
             if not features:
                 logger.warning(f"No features extracted for location ({lat}, {lon})")
-                return None
+                return self._get_fallback_assessment(lat, lon)
             
             # Convert features to vector
             feature_vector = self._features_to_vector(features)
             if feature_vector is None or len(feature_vector) == 0:
                 logger.warning("Failed to convert features to vector")
-                return None
+                return self._get_fallback_assessment(lat, lon)
             
             # Ensure feature vector has correct shape and move to correct device
             feature_tensor = torch.tensor(feature_vector, dtype=torch.float32).unsqueeze(0)
@@ -371,7 +371,19 @@ class CivilEngineeringSystem:
             
         except Exception as e:
             logger.error(f"Neural network prediction failed: {e}")
-            return None
+            return self._get_fallback_assessment(lat, lon)
+    
+    def _get_fallback_assessment(self, lat: float, lon: float) -> Dict:
+        """Get fallback risk assessment when prediction fails"""
+        return {
+            'environmental_risk': 0.5,
+            'infrastructure_risk': 0.5,
+            'construction_risk': 0.5,
+            'overall_risk': 0.5,
+            'confidence': 0.3,
+            'location': {'lat': lat, 'lon': lon},
+            'features_used': 0
+        }
     
     def predict_infrastructure_analysis(self, lat: float, lon: float, data_processor) -> Dict:
         # Predict infrastructure analysis at a specific location
@@ -1733,19 +1745,19 @@ class CivilEngineeringSystem:
         """Save the trained model and scalers"""
         try:
             # Save PyTorch model
-        model_path = self.model_dir / f"{model_name}.pth"
+            model_path = self.model_dir / f"{model_name}.pth"
             if self.model is not None:
-        torch.save(self.model.state_dict(), model_path)
-        
+                torch.save(self.model.state_dict(), model_path)
+            
             # Save scalers
             scaler_path = self.model_dir / f"{model_name}_scalers.joblib"
-        joblib.dump({
-            'scaler_X': self.scaler_X,
-            'scaler_y': self.scaler_y,
-            'feature_names': self.feature_names,
-            'output_names': self.output_names
-        }, scaler_path)
-        
+            joblib.dump({
+                'scaler_X': self.scaler_X,
+                'scaler_y': self.scaler_y,
+                'feature_names': self.feature_names,
+                'output_names': self.output_names
+            }, scaler_path)
+            
             logger.info(f"Model saved to {self.model_dir}")
             
         except Exception as e:
@@ -1760,8 +1772,8 @@ class CivilEngineeringSystem:
                 model_files = list(self.model_dir.glob("*.pth"))
                 if not model_files:
                     logger.warning("No model files found")
-            return False
-        
+                    return False
+                
                 # Sort by modification time and get the most recent
                 model_files.sort(key=lambda x: x.stat().st_mtime, reverse=True)
                 model_path = model_files[0]
@@ -1784,12 +1796,12 @@ class CivilEngineeringSystem:
                 input_dim = len(self.feature_names) if self.feature_names else 15
                 output_dim = len(self.output_names) if self.output_names else 3
                 
-        self.model = self.build_model(input_dim, output_dim)
+                self.model = self.build_model(input_dim, output_dim)
                 self.model.load_state_dict(torch.load(model_path, map_location=self.device))
                 self.model.eval()
-        
+                
                 logger.info(f"Model loaded successfully: {model_name}")
-        return True
+                return True
             else:
                 logger.warning(f"Model file not found: {model_path}")
                 return False

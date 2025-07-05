@@ -201,7 +201,7 @@ class DataProcessor:
         # Remove duplicates
         if cleaning_config.get('remove_duplicates', True):
             original_len = len(df)
-        df = df.drop_duplicates()
+            df = df.drop_duplicates()
             removed = original_len - len(df)
             if removed > 0:
                 logger.info(f"Removed {removed} duplicate rows from {dataset_type}")
@@ -219,8 +219,8 @@ class DataProcessor:
         if cleaning_config.get('numeric_conversion', False):
             required_cols = config.get('required_columns', [])
             for col in required_cols:
-            if col in df.columns:
-                df[col] = pd.to_numeric(df[col], errors='coerce')
+                if col in df.columns:
+                    df[col] = pd.to_numeric(df[col], errors='coerce')
         
         return df
     
@@ -286,7 +286,7 @@ class DataProcessor:
         df['latitude'] = np.random.uniform(lat_min, lat_max, len(df))
         df['longitude'] = np.random.uniform(lon_min, lon_max, len(df))
         
-                return df
+        return df
     
     def _generate_clustered_coordinates(self, df: pd.DataFrame, bounds: Dict, coord_config: Dict) -> pd.DataFrame:
         """Generate clustered coordinates around major areas"""
@@ -312,7 +312,7 @@ class DataProcessor:
             df.iloc[i, df.columns.get_loc('latitude')] = area['lat'] + np.random.normal(0, radius)
             df.iloc[i, df.columns.get_loc('longitude')] = area['lon'] + np.random.normal(0, radius)
         
-                return df
+        return df
     
     @log_performance(logger)
     def load_specific_dataset(self, dataset_type: str) -> Optional[Union[pd.DataFrame, Dict, gpd.GeoDataFrame]]:
@@ -562,7 +562,7 @@ class DataProcessor:
             'total_datasets': len(self.discovered_datasets),
             'enabled_datasets': len([d for d in self.discovered_datasets.values() if d.get('enabled', True)]),
             'loaded_datasets': len(self.processed_data)
-                }
+        }
         
         return summary 
     

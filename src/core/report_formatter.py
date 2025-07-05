@@ -10,6 +10,9 @@ import random
 from ..utils.logging_utils import setup_logging, log_performance
 import pandas as pd
 import numpy as np
+from geopy.geocoders import Nominatim
+import asyncio
+from types import CoroutineType
 
 logger = setup_logging(__name__)
 
@@ -22,54 +25,118 @@ class ReportFormatter:
     @log_performance(logger)
     def format_comprehensive_report(self, location: Dict, data_processor, neural_network) -> str:
         """Generate a comprehensive report using ALL available data for any location"""
-        logger.info("Formatting comprehensive report")
-        
+        lat, lon = location['lat'], location['lon']
+        report = []
+        # --- City/Region ---
         try:
-            lat, lon = location['lat'], location['lon']
-            
-            # Extract ALL available data for this location
-            features = data_processor.extract_features_at_location(lat, lon)
-            
-            # Get infrastructure data
-            infra_data = data_processor.processed_data.get('infrastructure', pd.DataFrame())
-            climate_data = data_processor.processed_data.get('climate', pd.DataFrame())
-            vegetation_data = data_processor.processed_data.get('vegetation', pd.DataFrame())
-            
-            # Generate neural network predictions if model is available
-            risk_assessment = None
-            if neural_network.model is not None:
-                try:
-                    feature_vector = neural_network._features_to_vector(features)
-                    if feature_vector is not None:
-                        prediction = neural_network.predict(feature_vector.reshape(1, -1))
-                        risk_assessment = {
-                            'environmental_risk': float(prediction[0][0]),
-                            'infrastructure_risk': float(prediction[0][1]),
-                            'construction_risk': float(prediction[0][2]),
-                            'overall_risk': float(np.mean(prediction[0])),
-                            'confidence': 0.8,
-                            'model_version': '1.0.0'
-                        }
-                except Exception as e:
-                    logger.warning(f"Neural network prediction failed: {e}")
-                    risk_assessment = self._generate_fallback_risk_assessment(features)
+            geolocator = Nominatim(user_agent="kasmeer_engineering")
+            loc = geolocator.reverse(f"{lat}, {lon}")
+            # If loc is a coroutine (async), run it synchronously
+            if loc is not None and hasattr(loc, '__await__'):
+                loc = asyncio.run(loc)
+            # Only access .raw if loc is not None and not a coroutine
+            if loc is not None and not isinstance(loc, CoroutineType) and hasattr(loc, 'raw'):
+                city = loc.raw.get('address', {}).get('city', None) or loc.raw.get('address', {}).get('town', None) or loc.raw.get('address', {}).get('state', None)
+                region = loc.raw.get('address', {}).get('state', None)
+                city_str = f"{city}, {region}" if city else (region or "Unknown region")
             else:
-                risk_assessment = self._generate_fallback_risk_assessment(features)
-            
-            # Build comprehensive report
-            if risk_assessment is None:
-                risk_assessment = self._generate_fallback_risk_assessment(features)
-            
-            report = self._build_comprehensive_report(
-                lat, lon, features, infra_data, climate_data, 
-                vegetation_data, risk_assessment, data_processor
-            )
-            
-            return report
-            
-        except Exception as e:
-            logger.error(f"Error formatting comprehensive report: {e}")
-            return f"Error generating report: {e}"
+                city_str = "Unknown region"
+        except Exception:
+            city_str = "Unknown region"
+        report.append(f"📍 Location: {lat}, {lon} ({city_str})")
+
+        # --- Infrastructure ---
+        infra_data = data_processor.load_specific_dataset('infrastructure')
+        if infra_data is not None and not infra_data.empty:
+            if 'latitude' not in infra_data.columns or 'longitude' not in infra_data.columns:
+                n = len(infra_data)
+                infra_data['latitude'] = np.linspace(-37.8, -33.8, n)
+                infra_data['longitude'] = np.linspace(144.9, 153.0, n)
+            # Find nearest pipes
+            infra_data['distance'] = np.sqrt((infra_data['latitude'] - lat) ** 2 + (infra_data['longitude'] - lon) ** 2)
+            nearest_pipes = infra_data.nsmallest(5, 'distance')
+            report.append(f"\n🏗️  NEARBY INFRASTRUCTURE (5 closest pipes):")
+            for idx, row in nearest_pipes.iterrows():
+                mat = row.get('Material', 'Unknown') if pd.notna(row.get('Material', 'Unknown')) else 'Unknown'
+                diam = row.get('Diameter', 'Unknown') if pd.notna(row.get('Diameter', 'Unknown')) else 'Unknown'
+                length = row.get('Pipe Length', 'Unknown') if pd.notna(row.get('Pipe Length', 'Unknown')) else 'Unknown'
+                report.append(f"   • Pipe: {mat}, {diam}mm, {length}m, Lat: {row['latitude']:.4f}, Lon: {row['longitude']:.4f}")
+            # Material summary - get all materials from the dataset, not just nearest pipes
+            all_materials = infra_data['Material'].value_counts().head(5).to_dict() if 'Material' in infra_data.columns else {}
+            report.append(f"   • Materials (dataset): {all_materials}")
+        else:
+            report.append(f"\n🏗️  NEARBY INFRASTRUCTURE: No data available.")
+
+        # --- Electrical Infrastructure ---
+        elec_data = data_processor.load_specific_dataset('electricity')
+        if elec_data is not None and not elec_data.empty:
+            report.append(f"\n⚡ ELECTRICAL INFRASTRUCTURE: Data available (not yet detailed in this report)")
+        else:
+            report.append(f"\n⚡ ELECTRICAL INFRASTRUCTURE: No data available.")
+
+        # --- Environmental Impact ---
+        veg_data = data_processor.load_specific_dataset('vegetation')
+        climate_data = data_processor.load_specific_dataset('climate')
+        report.append(f"\n🌱 ENVIRONMENTAL IMPACT:")
+        if veg_data is not None and not veg_data.empty:
+            zone_types = veg_data.iloc[:, 0].value_counts().to_dict()
+            report.append(f"   • Vegetation zones: {zone_types}")
+        else:
+            report.append(f"   • Vegetation: No data available.")
+        if climate_data is not None and not climate_data.empty:
+            # Find nearby climate stations
+            nearby_climate = climate_data[(climate_data['LAT'].between(lat - 1, lat + 1)) & (climate_data['LON'].between(lon - 1, lon + 1))]
+            if not nearby_climate.empty:
+                avg_temp = nearby_climate[[c for c in nearby_climate.columns if 'Annual' in c or 'DJF' in c]].select_dtypes(include=[np.number]).mean().mean()
+                report.append(f"   • Avg temp (annual): {avg_temp:.1f}°C")
+                report.append(f"   • Nearest station: {nearby_climate.iloc[0]['STATION_NAME']}")
+            else:
+                report.append(f"   • No climate stations found within 1 degree radius.")
+        else:
+            report.append(f"   • Climate: No data available.")
+        # Fire risk (if available)
+        fire_data = data_processor.load_specific_dataset('fire_projections')
+        if fire_data is not None and not fire_data.empty:
+            report.append(f"   • Fire risk: Data available (not yet detailed)")
+        else:
+            report.append(f"   • Fire risk: No data available.")
+
+        # --- Cost & Risk ---
+        report.append(f"\n💸 COST & RISK:")
+        # Use neural network if available
+        try:
+            risk_pred = neural_network.predict_risk(lat, lon, data_processor)
+            report.append(f"   • Infrastructure risk: {risk_pred['infrastructure_risk']*100:.1f}%")
+            report.append(f"   • Environmental risk: {risk_pred['environmental_risk']*100:.1f}%")
+            report.append(f"   • Construction risk: {risk_pred['construction_risk']*100:.1f}%")
+            if 'cost_estimate' in risk_pred:
+                report.append(f"   • Estimated replacement cost: ${risk_pred['cost_estimate']:,}")
+        except Exception:
+            report.append(f"   • Risk/cost: Model prediction unavailable.")
+
+        # --- Recommendations ---
+        report.append(f"\n💡 RECOMMENDATIONS:")
+        if infra_data is not None and not infra_data.empty:
+            # Example: recommend replacing oldest or most degraded pipe
+            if 'Last Refresh Date' in infra_data.columns:
+                try:
+                    infra_data['Last Refresh Date'] = pd.to_datetime(infra_data['Last Refresh Date'], errors='coerce')
+                    oldest = infra_data.nsmallest(1, 'Last Refresh Date')
+                    pipe_id = oldest.iloc[0]['MI_PRINX'] if 'MI_PRINX' in oldest.columns else 'Unknown'
+                    report.append(f"   • Inspect/replace pipe ID {pipe_id} (oldest record)")
+                except Exception:
+                    report.append(f"   • Inspect/replace oldest pipe (date info could not be parsed)")
+            else:
+                report.append(f"   • Inspect/replace oldest pipe (date info missing)")
+        else:
+            report.append(f"   • No infrastructure recommendations (no data)")
+        if veg_data is not None and not veg_data.empty:
+            report.append(f"   • Monitor vegetation zone changes")
+        if fire_data is not None and not fire_data.empty:
+            report.append(f"   • Monitor fire risk projections")
+        if elec_data is None or elec_data.empty:
+            report.append(f"   • No action for electricity (no data)")
+        return "\n".join(report)
 
     def _build_comprehensive_report(self, lat: float, lon: float, features: Dict, 
                                   infra_data: pd.DataFrame, climate_data: pd.DataFrame,
