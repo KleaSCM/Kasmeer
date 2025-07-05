@@ -8,7 +8,8 @@ import logging
 from typing import Dict, List, Tuple, Optional, Union
 from dataclasses import dataclass
 import json
-from utils.logging_utils import setup_logging, log_performance
+from ..utils.logging_utils import setup_logging, log_performance
+from .report_formatter import ReportFormatter
 
 logger = setup_logging(__name__)
 
@@ -32,6 +33,7 @@ class QueryEngine:
     def __init__(self, data_processor, neural_network):
         self.data_processor = data_processor
         self.neural_network = neural_network
+        self.report_formatter = ReportFormatter()
         logger.info("Initialized QueryEngine")
         
         # Define query patterns
@@ -128,21 +130,8 @@ class QueryEngine:
                     return {'lat': lat, 'lon': lon}
                 except ValueError:
                     continue
-        
         # If no coordinates found, try to extract location names
-        # TODO: Implement proper geocoding service integration
-        location_keywords = {
-            'melbourne': {'lat': -37.8136, 'lon': 144.9631},
-            'sydney': {'lat': -33.8688, 'lon': 151.2093},
-            'brisbane': {'lat': -27.4698, 'lon': 153.0251},
-            'perth': {'lat': -31.9505, 'lon': 115.8605},
-            'adelaide': {'lat': -34.9285, 'lon': 138.6007},
-        }
-        
-        for location_name, coords in location_keywords.items():
-            if location_name in query:
-                return coords
-        
+        # TODO: Integrate with geocoding service or require explicit coordinates
         return None
     
     def _classify_query(self, query: str) -> str:
@@ -160,7 +149,7 @@ class QueryEngine:
         try:
             return max(scores, key=lambda k: scores.get(k, 0))
         except ValueError:
-            return 'general'
+        return 'general'
     
     def _handle_infrastructure_query(self, query: str, location: Optional[Dict]) -> QueryResult:
         # Handle infrastructure-related queries using neural network predictions
@@ -201,10 +190,10 @@ class QueryEngine:
             
             # Get recommendations from neural network
             recommendations = infrastructure_prediction.get('recommendations', [])
-            
-            return QueryResult(
-                query=query,
-                location=location,
+        
+        return QueryResult(
+            query=query,
+            location=location,
                 infrastructure_info=infrastructure_info,
                 recommendations=recommendations,
                 confidence=infrastructure_prediction.get('confidence', 0.8)
@@ -217,7 +206,7 @@ class QueryEngine:
                 location=location,
                 error=f"Error in infrastructure analysis: {str(e)}",
                 confidence=0.0
-            )
+        )
     
     def _handle_environmental_query(self, query: str, location: Optional[Dict]) -> QueryResult:
         # Handle environmental-related queries using neural network predictions
@@ -239,8 +228,8 @@ class QueryEngine:
             # The neural network should provide environmental insights based on its training data
             environmental_prediction = self.neural_network.predict_environmental_analysis(
                 location['lat'], location['lon'], self.data_processor
-            )
-            
+        )
+        
             # Extract environmental information from neural network output
             # No hardcoded logic - everything comes from the trained model
             environmental_info = {
@@ -252,8 +241,8 @@ class QueryEngine:
                 'data_completeness': environmental_prediction.get('data_completeness', 0.0),
                 'confidence': environmental_prediction.get('confidence', 0.0),
                 'data_sources': environmental_prediction.get('data_sources', [])
-            }
-            
+        }
+        
             # Get recommendations from neural network
             recommendations = environmental_prediction.get('recommendations', [])
             
@@ -267,12 +256,12 @@ class QueryEngine:
             
         except Exception as e:
             logger.error(f"Error in environmental analysis: {e}")
-            return QueryResult(
-                query=query,
-                location=location,
+        return QueryResult(
+            query=query,
+            location=location,
                 error=f"Error in environmental analysis: {str(e)}",
                 confidence=0.0
-            )
+        )
     
     def _handle_risk_query(self, query: str, location: Optional[Dict]) -> QueryResult:
         # Handle risk assessment queries using neural network predictions
@@ -353,7 +342,7 @@ class QueryEngine:
             
             # Extract construction information from neural network output
             # No hardcoded logic - everything comes from the trained model
-            construction_info = {
+        construction_info = {
                 'construction_phases': construction_prediction.get('phases', []),
                 'timeline': construction_prediction.get('timeline', {}),
                 'requirements': construction_prediction.get('requirements', []),
@@ -404,11 +393,11 @@ class QueryEngine:
             # The neural network should provide survey recommendations based on its training data
             survey_prediction = self.neural_network.predict_survey_requirements(
                 location['lat'], location['lon'], self.data_processor
-            )
-            
+        )
+        
             # Extract survey information from neural network output
             # No hardcoded logic - everything comes from the trained model
-            survey_info = {
+        survey_info = {
                 'survey_status': survey_prediction.get('status', 'unknown'),
                 'last_survey_date': survey_prediction.get('last_survey_date', 'unknown'),
                 'survey_priority': survey_prediction.get('priority', 'medium'),
@@ -454,7 +443,7 @@ class QueryEngine:
                 "Use specific terms like 'pipes', 'climate', 'risk', or 'construction'"
             ],
             confidence=0.3
-        )
+            )
     
     def _calculate_data_completeness(self, features: Dict) -> float:
         """Calculate data completeness score"""
@@ -487,50 +476,18 @@ class QueryEngine:
     
     @log_performance(logger)
     def format_response(self, result: QueryResult) -> str:
-        """Format query result for display"""
+        """Format query result for display using comprehensive report formatter"""
         if result.error:
             return f"❌ Error: {result.error}"
         
-        response_parts = []
-        
-        # Add location info
+        # Always use comprehensive report if location is available
         if result.location:
-            response_parts.append(f"📍 Location: {result.location['lat']:.4f}, {result.location['lon']:.4f}")
+            return self.report_formatter.format_comprehensive_report(
+                result.location, self.data_processor, self.neural_network
+            )
         
-        # Add infrastructure info
-        if result.infrastructure_info:
-            infra = result.infrastructure_info
-            response_parts.append(f"🏗️ Infrastructure: {infra.get('pipe_count', 0)} pipes, "
-                                f"{infra.get('total_length', 0):.1f}m total length")
-        
-        # Add environmental info
-        if result.environmental_info:
-            env = result.environmental_info
-            if 'data_completeness' in env:
-                response_parts.append(f"🌍 Environmental Data: {env['data_completeness']:.1%} complete")
-        
-        # Add risk assessment
-        if result.risk_assessment:
-            risk = result.risk_assessment
-            response_parts.append(f"⚠️ Risk Assessment:")
-            response_parts.append(f"  • Environmental: {risk.get('environmental_risk', 0):.1%}")
-            response_parts.append(f"  • Infrastructure: {risk.get('infrastructure_risk', 0):.1%}")
-            response_parts.append(f"  • Construction: {risk.get('construction_risk', 0):.1%}")
-            response_parts.append(f"  • Overall: {risk.get('overall_risk', 0):.1%}")
-            if risk.get('confidence'):
-                response_parts.append(f"  • Confidence: {risk.get('confidence', 0):.1%}")
-        
-        # Add construction info
-        if result.construction_info:
-            construction = result.construction_info
-            response_parts.append(f"🏗️ Construction Plan:")
-            if construction.get('construction_phases'):
-                response_parts.append(f"  • Phases: {len(construction['construction_phases'])}")
-            if construction.get('timeline'):
-                timeline = construction['timeline']
-                response_parts.append(f"  • Duration: {timeline.get('total_duration_days', 0)} days")
-            if construction.get('confidence'):
-                response_parts.append(f"  • Confidence: {construction.get('confidence', 0):.1%}")
+        # Fallback for queries without location
+        response_parts = []
         
         # Add recommendations
         if result.recommendations:

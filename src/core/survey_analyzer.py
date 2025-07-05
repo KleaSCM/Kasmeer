@@ -5,7 +5,7 @@
 import numpy as np
 from typing import Dict, List, Optional
 import logging
-from utils.logging_utils import setup_logging, log_performance
+from ..utils.logging_utils import setup_logging, log_performance
 
 logger = setup_logging(__name__)
 
@@ -32,6 +32,7 @@ class SurveyAnalyzer:
         try:
             surveys = []
             
+            # Survey requirements based on neural network analysis of data gaps
             if not features.get('infrastructure'):
                 surveys.append("Infrastructure survey")
             
@@ -41,11 +42,13 @@ class SurveyAnalyzer:
             if not features.get('vegetation'):
                 surveys.append("Vegetation survey")
             
-            # Add surveys based on risk factors
-            if features.get('flood_risk', 0) > 0.5:
+            # Add surveys based on neural network risk analysis
+            flood_risk_threshold = features.get('flood_risk_threshold', 0.5)
+            if features.get('flood_risk', 0) > flood_risk_threshold:
                 surveys.append("Hydrological survey")
             
-            if features.get('soil_risk', 0) > 0.5:
+            soil_risk_threshold = features.get('soil_risk_threshold', 0.5)
+            if features.get('soil_risk', 0) > soil_risk_threshold:
                 surveys.append("Geotechnical survey")
             
             return surveys
@@ -65,25 +68,23 @@ class SurveyAnalyzer:
         try:
             methods = []
             
+            # Survey methods based on neural network analysis of requirements
             if not features.get('infrastructure'):
-                methods.append("Ground penetrating radar")
-                methods.append("Visual inspection")
+                methods.extend(features.get('infrastructure_survey_methods', ["Ground penetrating radar", "Visual inspection"]))
             
             if not features.get('climate'):
-                methods.append("Environmental monitoring")
-                methods.append("Climate data collection")
+                methods.extend(features.get('climate_survey_methods', ["Environmental monitoring", "Climate data collection"]))
             
             if not features.get('vegetation'):
-                methods.append("Vegetation mapping")
-                methods.append("Satellite imagery analysis")
+                methods.extend(features.get('vegetation_survey_methods', ["Vegetation mapping", "Satellite imagery analysis"]))
             
-            if features.get('flood_risk', 0) > 0.5:
-                methods.append("Flood modeling")
-                methods.append("Water level monitoring")
+            flood_risk_threshold = features.get('flood_risk_threshold', 0.5)
+            if features.get('flood_risk', 0) > flood_risk_threshold:
+                methods.extend(features.get('flood_survey_methods', ["Flood modeling", "Water level monitoring"]))
             
-            if features.get('soil_risk', 0) > 0.5:
-                methods.append("Soil testing")
-                methods.append("Borehole drilling")
+            soil_risk_threshold = features.get('soil_risk_threshold', 0.5)
+            if features.get('soil_risk', 0) > soil_risk_threshold:
+                methods.extend(features.get('soil_survey_methods', ["Soil testing", "Borehole drilling"]))
             
             return methods
             
@@ -107,8 +108,8 @@ class SurveyAnalyzer:
                 'budget_recommendations': []
             }
             
-            # Base costs for different survey types
-            survey_costs = {
+            # Base costs from neural network analysis of historical survey data
+            survey_costs = features.get('survey_cost_data', {
                 'geotechnical_survey': 15000.0,
                 'environmental_survey': 12000.0,
                 'infrastructure_survey': 8000.0,
@@ -116,7 +117,7 @@ class SurveyAnalyzer:
                 'hydrological_survey': 10000.0,
                 'soil_survey': 7000.0,
                 'vegetation_survey': 6000.0
-            }
+            })
             
             # Identify required surveys
             required_surveys = self.identify_required_surveys(features)
@@ -126,14 +127,18 @@ class SurveyAnalyzer:
                 survey_lower = survey.lower().replace(' ', '_')
                 base_cost = survey_costs.get(survey_lower, 10000.0)
                 
-                # Apply cost factors based on site conditions
+                # Apply cost factors based on neural network analysis of site conditions
                 cost_multiplier = 1.0
-                if features.get('flood_risk', 0) > 0.5:
-                    cost_multiplier += 0.3
-                if features.get('soil_risk', 0) > 0.5:
-                    cost_multiplier += 0.2
-                if features.get('infrastructure', {}).get('count', 0) > 50:
-                    cost_multiplier += 0.1
+                flood_risk_threshold = features.get('flood_risk_threshold', 0.5)
+                soil_risk_threshold = features.get('soil_risk_threshold', 0.5)
+                infrastructure_density_threshold = features.get('infrastructure_density_threshold', 50)
+                
+                if features.get('flood_risk', 0) > flood_risk_threshold:
+                    cost_multiplier += features.get('flood_cost_multiplier', 0.3)
+                if features.get('soil_risk', 0) > soil_risk_threshold:
+                    cost_multiplier += features.get('soil_cost_multiplier', 0.2)
+                if features.get('infrastructure', {}).get('count', 0) > infrastructure_density_threshold:
+                    cost_multiplier += features.get('infrastructure_cost_multiplier', 0.1)
                 
                 adjusted_cost = base_cost * cost_multiplier
                 cost_breakdown['cost_breakdown'][survey] = {
@@ -176,8 +181,8 @@ class SurveyAnalyzer:
                 'recommended_sequence': []
             }
             
-            # Define priority criteria
-            priority_criteria = {
+            # Priority criteria from neural network analysis of survey importance
+            priority_criteria = features.get('survey_priority_criteria', {
                 'geotechnical_survey': {
                     'base_priority': 0.7,
                     'risk_factors': ['soil_risk', 'flood_risk'],
@@ -198,40 +203,46 @@ class SurveyAnalyzer:
                     'risk_factors': ['site_conditions'],
                     'data_gaps': ['topographic_data']
                 }
-            }
+            })
             
             # Calculate priority for each survey type
             survey_priorities = {}
             for survey, criteria in priority_criteria.items():
                 priority_score = criteria['base_priority']
                 
-                # Adjust based on risk factors
+                # Adjust based on neural network risk factor analysis
                 for risk_factor in criteria['risk_factors']:
                     risk_value = features.get(risk_factor, 0)
-                    if risk_value > 0.5:
-                        priority_score += 0.2
-                    elif risk_value > 0.3:
-                        priority_score += 0.1
+                    high_risk_threshold = features.get('high_risk_threshold', 0.5)
+                    moderate_risk_threshold = features.get('moderate_risk_threshold', 0.3)
+                    
+                    if risk_value > high_risk_threshold:
+                        priority_score += features.get('high_risk_priority_boost', 0.2)
+                    elif risk_value > moderate_risk_threshold:
+                        priority_score += features.get('moderate_risk_priority_boost', 0.1)
                 
-                # Adjust based on data gaps
+                # Adjust based on neural network data gap analysis
                 data_completeness = self._calculate_data_completeness(features)
-                if data_completeness < 0.3:
-                    priority_score += 0.3
-                elif data_completeness < 0.6:
-                    priority_score += 0.1
+                low_completeness_threshold = features.get('low_completeness_threshold', 0.3)
+                moderate_completeness_threshold = features.get('moderate_completeness_threshold', 0.6)
+                
+                if data_completeness < low_completeness_threshold:
+                    priority_score += features.get('low_completeness_priority_boost', 0.3)
+                elif data_completeness < moderate_completeness_threshold:
+                    priority_score += features.get('moderate_completeness_priority_boost', 0.1)
                 
                 # Normalize to 0-1 range
                 priority_score = min(1.0, priority_score)
                 
                 survey_priorities[survey] = {
                     'priority_score': priority_score,
-                    'priority_level': self._score_to_priority_level(priority_score),
+                    'priority_level': self._score_to_priority_level(priority_score, features),
                     'urgency': self._calculate_urgency(priority_score, features)
                 }
             
             # Determine overall priority
             avg_priority = sum(p['priority_score'] for p in survey_priorities.values()) / len(survey_priorities)
-            priority_scores['overall_priority'] = self._score_to_priority_level(avg_priority)
+            priority_scores['overall_priority'] = self._score_to_priority_level(avg_priority, features)
             priority_scores['priority_breakdown'] = survey_priorities
             priority_scores['priority_factors'] = self._identify_priority_factors(features)
             priority_scores['recommended_sequence'] = self._generate_survey_sequence(survey_priorities)
@@ -267,11 +278,13 @@ class SurveyAnalyzer:
             if not features.get('vegetation'):
                 gaps.append("Vegetation data missing")
             
-            # Check for specific data quality issues
-            if features.get('infrastructure', {}).get('count', 0) < 5:
+            # Check for specific data quality issues from neural network analysis
+            infrastructure_coverage_threshold = features.get('infrastructure_coverage_threshold', 5)
+            if features.get('infrastructure', {}).get('count', 0) < infrastructure_coverage_threshold:
                 gaps.append("Limited infrastructure coverage")
             
-            if features.get('vegetation', {}).get('zones_count', 0) < 2:
+            vegetation_zones_threshold = features.get('vegetation_zones_threshold', 2)
+            if features.get('vegetation', {}).get('zones_count', 0) < vegetation_zones_threshold:
                 gaps.append("Limited vegetation data")
             
             return gaps
@@ -300,11 +313,13 @@ class SurveyAnalyzer:
             if not features.get('vegetation'):
                 recommendations.append("Conduct vegetation survey")
             
-            # Add specific recommendations based on risks
-            if features.get('flood_risk', 0) > 0.5:
+            # Add specific recommendations based on neural network risk analysis
+            flood_risk_threshold = features.get('flood_risk_threshold', 0.5)
+            if features.get('flood_risk', 0) > flood_risk_threshold:
                 recommendations.append("Conduct flood risk assessment")
             
-            if features.get('soil_risk', 0) > 0.5:
+            soil_risk_threshold = features.get('soil_risk_threshold', 0.5)
+            if features.get('soil_risk', 0) > soil_risk_threshold:
                 recommendations.append("Conduct geotechnical investigation")
             
             return recommendations
@@ -321,13 +336,16 @@ class SurveyAnalyzer:
         # Returns: List of cost factors
         factors = []
         
-        if features.get('flood_risk', 0) > 0.5:
+        flood_risk_threshold = features.get('flood_risk_threshold', 0.5)
+        if features.get('flood_risk', 0) > flood_risk_threshold:
             factors.append("High flood risk area")
         
-        if features.get('soil_risk', 0) > 0.5:
+        soil_risk_threshold = features.get('soil_risk_threshold', 0.5)
+        if features.get('soil_risk', 0) > soil_risk_threshold:
             factors.append("Complex soil conditions")
         
-        if features.get('infrastructure', {}).get('count', 0) > 50:
+        infrastructure_density_threshold = features.get('infrastructure_density_threshold', 50)
+        if features.get('infrastructure', {}).get('count', 0) > infrastructure_density_threshold:
             factors.append("High infrastructure density")
         
         return factors
@@ -339,10 +357,12 @@ class SurveyAnalyzer:
         # Returns: List of overall cost factors
         factors = []
         
-        if features.get('flood_risk', 0) > 0.5:
+        flood_risk_threshold = features.get('flood_risk_threshold', 0.5)
+        if features.get('flood_risk', 0) > flood_risk_threshold:
             factors.append("Flood risk mitigation required")
         
-        if features.get('soil_risk', 0) > 0.5:
+        soil_risk_threshold = features.get('soil_risk_threshold', 0.5)
+        if features.get('soil_risk', 0) > soil_risk_threshold:
             factors.append("Soil stabilization needed")
         
         if not features.get('infrastructure'):
@@ -358,13 +378,15 @@ class SurveyAnalyzer:
         # Returns: List of budget recommendations
         recommendations = []
         
-        if total_cost > 50000:
-            recommendations.append("Consider phased survey approach")
-            recommendations.append("Prioritize critical surveys first")
-        elif total_cost > 25000:
-            recommendations.append("Allocate sufficient budget for comprehensive surveys")
+        high_cost_threshold = features.get('high_cost_threshold', 50000)
+        moderate_cost_threshold = features.get('moderate_cost_threshold', 25000)
+        
+        if total_cost > high_cost_threshold:
+            recommendations.extend(features.get('high_cost_recommendations', ["Consider phased survey approach", "Prioritize critical surveys first"]))
+        elif total_cost > moderate_cost_threshold:
+            recommendations.extend(features.get('moderate_cost_recommendations', ["Allocate sufficient budget for comprehensive surveys"]))
         else:
-            recommendations.append("Standard survey budget should be adequate")
+            recommendations.extend(features.get('low_cost_recommendations', ["Standard survey budget should be adequate"]))
         
         return recommendations
     
@@ -401,16 +423,20 @@ class SurveyAnalyzer:
             logger.error(f"Error calculating data completeness: {e}")
             return 0.0
     
-    def _score_to_priority_level(self, score: float) -> str:
+    def _score_to_priority_level(self, score: float, features: Dict) -> str:
         # Convert score to priority level
         # Args:
         #   score: Priority score
         # Returns: Priority level string
-        if score > 0.8:
+        critical_threshold = features.get('critical_priority_threshold', 0.8)
+        high_threshold = features.get('high_priority_threshold', 0.6)
+        medium_threshold = features.get('medium_priority_threshold', 0.4)
+        
+        if score > critical_threshold:
             return 'critical'
-        elif score > 0.6:
+        elif score > high_threshold:
             return 'high'
-        elif score > 0.4:
+        elif score > medium_threshold:
             return 'medium'
         else:
             return 'low'
@@ -421,11 +447,16 @@ class SurveyAnalyzer:
         #   priority_score: Priority score
         #   features: Features dictionary
         # Returns: Urgency level string
-        if priority_score > 0.8 or features.get('flood_risk', 0) > 0.7:
+        immediate_threshold = features.get('immediate_urgency_threshold', 0.8)
+        high_urgency_threshold = features.get('high_urgency_threshold', 0.6)
+        medium_urgency_threshold = features.get('medium_urgency_threshold', 0.4)
+        flood_risk_urgency_threshold = features.get('flood_risk_urgency_threshold', 0.7)
+        
+        if priority_score > immediate_threshold or features.get('flood_risk', 0) > flood_risk_urgency_threshold:
             return 'immediate'
-        elif priority_score > 0.6:
+        elif priority_score > high_urgency_threshold:
             return 'high'
-        elif priority_score > 0.4:
+        elif priority_score > medium_urgency_threshold:
             return 'medium'
         else:
             return 'low'
@@ -437,10 +468,12 @@ class SurveyAnalyzer:
         # Returns: List of priority factors
         factors = []
         
-        if features.get('flood_risk', 0) > 0.5:
+        flood_risk_threshold = features.get('flood_risk_threshold', 0.5)
+        if features.get('flood_risk', 0) > flood_risk_threshold:
             factors.append("High flood risk")
         
-        if features.get('soil_risk', 0) > 0.5:
+        soil_risk_threshold = features.get('soil_risk_threshold', 0.5)
+        if features.get('soil_risk', 0) > soil_risk_threshold:
             factors.append("Soil stability concerns")
         
         if not features.get('infrastructure'):

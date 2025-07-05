@@ -10,7 +10,7 @@ from typing import Dict, Any, Optional, Union
 import pandas as pd
 import numpy as np
 from datetime import datetime
-from utils.logging_utils import setup_logging, log_performance
+from .logging_utils import setup_logging, log_performance
 
 logger = setup_logging(__name__)
 

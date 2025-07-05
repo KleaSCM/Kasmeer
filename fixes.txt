@@ -1,0 +1,46 @@
+dataset.config.py
+
+| Idea                                           | Why                                                                     |
+| ---------------------------------------------- | ----------------------------------------------------------------------- |
+| Add automated column type inference + override | Sometimes Excel exports mix string/float badly (e.g. "3.0", "–", "n/a") |
+| Add per-column min/max/mean logging            | Useful for scaling and normalizing later                                |
+| Add warnings for high null ratios              | Prevents garbage data from training silently                            |
+| Optional cache of preprocessed files           | Avoids re-parsing 100MB spreadsheets every run                          |
+| Hook into `model_versioning.py` for provenance | So every training run knows *exactly* what data was used                |
+
+
+model_versioning.py
+
+| Idea                                        | Benefit                                                                          |
+| ------------------------------------------- | -------------------------------------------------------------------------------- |
+| `EarlyStopping` hook                        | Avoid wasting epochs if loss plateaus                                            |
+| Logging (e.g. wandb / tensorboard optional) | Dev insight + graphs for risk/cost planning ML use                               |
+| Model eval between increments               | Report accuracy/metrics across time steps                                        |
+| LR scheduler                                | Dynamic training behavior, esp. for longer sequences                             |
+| Weighted sampling or class balancing        | Especially useful in civil data where events are skewed (e.g., flood vs. normal) |
+
+
+ Incremental Training.py
+
+ | Idea                                        | Benefit                                                                          |
+| ------------------------------------------- | -------------------------------------------------------------------------------- |
+| `EarlyStopping` hook                        | Avoid wasting epochs if loss plateaus                                            |
+| Logging (e.g. wandb / tensorboard optional) | Dev insight + graphs for risk/cost planning ML use                               |
+| Model eval between increments               | Report accuracy/metrics across time steps                                        |
+| LR scheduler                                | Dynamic training behavior, esp. for longer sequences                             |
+| Weighted sampling or class balancing        | Especially useful in civil data where events are skewed (e.g., flood vs. normal) |
+
+
+neural_network.py
+
+BatchNorm or LayerNorm
+Especially in deep networks or noisy tabular data, you may benefit from nn.BatchNorm1d or LayerNorm in the layer loop.
+
+Custom init option
+Add a flag to support Kaiming or Xavier init — especially useful if you're building deeper nets.
+
+Skip connections / residual option
+Could be useful for deep risk analysis, planning graphs, or temporal modeling.
+
+Meta wrapper
+Wrap the entire model in a metadata-bearing object so it returns results + structure for explainability (great for engineering reports).

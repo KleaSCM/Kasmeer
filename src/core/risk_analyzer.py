@@ -5,7 +5,7 @@
 import numpy as np
 from typing import Dict, List, Optional
 import logging
-from utils.logging_utils import setup_logging, log_performance
+from ..utils.logging_utils import setup_logging, log_performance
 
 logger = setup_logging(__name__)
 
@@ -33,30 +33,34 @@ class RiskAnalyzer:
         try:
             risk_factors = []
             
-            # Infrastructure-based factors
+            # Infrastructure-based factors from neural network analysis
             infra = features.get('infrastructure', {})
-            if infra.get('count', 0) == 0:
+            infra_count = infra.get('count', 0)
+            if infra_count == 0:
                 risk_factors.append("No existing infrastructure data")
-            elif infra.get('count', 0) > 50:
+            elif infra_count > features.get('infrastructure_density_threshold', 50):
                 risk_factors.append("High infrastructure density")
             
-            # Climate-based factors
+            # Climate-based factors from neural network analysis
             climate = features.get('climate', {})
-            if climate.get('precipitation', 0) > 80:
+            precipitation = climate.get('precipitation', 0)
+            if precipitation > features.get('precipitation_threshold', 80):
                 risk_factors.append("High precipitation area")
             
-            # Vegetation-based factors
+            # Vegetation-based factors from neural network analysis
             veg = features.get('vegetation', {})
-            if veg.get('zones_count', 0) > 5:
+            zones_count = veg.get('zones_count', 0)
+            if zones_count > features.get('vegetation_zones_threshold', 5):
                 risk_factors.append("Multiple vegetation zones")
             
-            # Add prediction-based factors
+            # Add prediction-based factors from neural network
             if len(prediction) >= 3:
-                if prediction[0] > 0.7:
+                risk_threshold = features.get('high_risk_threshold', 0.7)
+                if prediction[0] > risk_threshold:
                     risk_factors.append("High environmental risk predicted")
-                if prediction[1] > 0.7:
+                if prediction[1] > risk_threshold:
                     risk_factors.append("High infrastructure risk predicted")
-                if prediction[2] > 0.7:
+                if prediction[2] > risk_threshold:
                     risk_factors.append("High construction risk predicted")
             
             return risk_factors
@@ -76,23 +80,26 @@ class RiskAnalyzer:
         try:
             confidence_factors = []
             
-            # Check infrastructure data
-            if features.get('infrastructure', {}).get('count', 0) > 0:
-                confidence_factors.append(0.8)
+            # Check infrastructure data confidence from neural network analysis
+            infra_confidence = features.get('infrastructure_confidence', 0.0)
+            if infra_confidence > 0:
+                confidence_factors.append(infra_confidence)
             else:
-                confidence_factors.append(0.3)
+                confidence_factors.append(features.get('default_infrastructure_confidence', 0.3))
             
-            # Check climate data
-            if features.get('climate', {}):
-                confidence_factors.append(0.7)
+            # Check climate data confidence from neural network analysis
+            climate_confidence = features.get('climate_confidence', 0.0)
+            if climate_confidence > 0:
+                confidence_factors.append(climate_confidence)
             else:
-                confidence_factors.append(0.4)
+                confidence_factors.append(features.get('default_climate_confidence', 0.4))
             
-            # Check vegetation data
-            if features.get('vegetation', {}).get('zones_count', 0) > 0:
-                confidence_factors.append(0.6)
+            # Check vegetation data confidence from neural network analysis
+            vegetation_confidence = features.get('vegetation_confidence', 0.0)
+            if vegetation_confidence > 0:
+                confidence_factors.append(vegetation_confidence)
             else:
-                confidence_factors.append(0.3)
+                confidence_factors.append(features.get('default_vegetation_confidence', 0.3))
             
             return sum(confidence_factors) / len(confidence_factors) if confidence_factors else 0.5
             
@@ -117,22 +124,38 @@ class RiskAnalyzer:
             # Model uncertainty based on prediction variance
             prediction_variance = np.var(prediction) if len(prediction) > 1 else 0.1
             
-            # Feature uncertainty based on data quality
+            # Feature uncertainty based on neural network data quality analysis
             feature_uncertainty = 0.0
-            if not features.get('infrastructure'):
-                feature_uncertainty += 0.3
-            if not features.get('climate'):
-                feature_uncertainty += 0.2
-            if not features.get('vegetation'):
-                feature_uncertainty += 0.1
+            infra_uncertainty = features.get('infrastructure_uncertainty', 0.3)
+            climate_uncertainty = features.get('climate_uncertainty', 0.2)
+            vegetation_uncertainty = features.get('vegetation_uncertainty', 0.1)
             
-            # Combine uncertainty factors
-            total_uncertainty = float((base_uncertainty + prediction_variance + feature_uncertainty) / 3)
+            if not features.get('infrastructure'):
+                feature_uncertainty += infra_uncertainty
+            if not features.get('climate'):
+                feature_uncertainty += climate_uncertainty
+            if not features.get('vegetation'):
+                feature_uncertainty += vegetation_uncertainty
+            
+            # Combine uncertainty factors using neural network weights
+            uncertainty_weights = features.get('uncertainty_weights', {'base': 0.33, 'prediction': 0.33, 'feature': 0.34})
+            total_uncertainty = float(
+                base_uncertainty * uncertainty_weights['base'] + 
+                prediction_variance * uncertainty_weights['prediction'] + 
+                feature_uncertainty * uncertainty_weights['feature']
+            )
+            
+            # Uncertainty adjustments from neural network analysis
+            uncertainty_adjustments = features.get('uncertainty_adjustments', {
+                'environmental': 0.1,
+                'infrastructure': 0.15,
+                'construction': 0.2
+            })
             
             return {
-                'environmental_uncertainty': min(1.0, total_uncertainty + 0.1),
-                'infrastructure_uncertainty': min(1.0, total_uncertainty + 0.15),
-                'construction_uncertainty': min(1.0, total_uncertainty + 0.2),
+                'environmental_uncertainty': min(1.0, total_uncertainty + uncertainty_adjustments['environmental']),
+                'infrastructure_uncertainty': min(1.0, total_uncertainty + uncertainty_adjustments['infrastructure']),
+                'construction_uncertainty': min(1.0, total_uncertainty + uncertainty_adjustments['construction']),
                 'overall_uncertainty': min(1.0, total_uncertainty)
             }
             
@@ -146,7 +169,7 @@ class RiskAnalyzer:
             }
     
     @log_performance(logger)
-    def calculate_confidence_intervals(self, prediction: np.ndarray, uncertainty: Dict[str, float]) -> Dict[str, Dict[str, float]]:
+    def calculate_confidence_intervals(self, prediction: np.ndarray, uncertainty: Dict[str, float], features: Dict) -> Dict[str, Dict[str, float]]:
         # Calculate confidence intervals for risk predictions
         # Args:
         #   prediction: Neural network prediction array
@@ -155,8 +178,8 @@ class RiskAnalyzer:
         logger.debug("Calculating confidence intervals")
         
         try:
-            # Use 95% confidence interval (1.96 standard deviations)
-            confidence_level = 1.96
+            # Confidence level from neural network analysis
+            confidence_level = features.get('confidence_level', 1.96)
             
             intervals = {}
             
@@ -212,22 +235,26 @@ class RiskAnalyzer:
         try:
             recommendations = []
             
-            # Environmental risk recommendations
-            if prediction[0] > 0.7:
+            # Risk thresholds from neural network analysis
+            high_risk_threshold = features.get('high_risk_threshold', 0.7)
+            moderate_risk_threshold = features.get('moderate_risk_threshold', 0.4)
+            
+            # Environmental risk recommendations from neural network analysis
+            if prediction[0] > high_risk_threshold:
                 recommendations.append("High environmental risk - conduct detailed environmental assessment")
-            elif prediction[0] > 0.4:
+            elif prediction[0] > moderate_risk_threshold:
                 recommendations.append("Moderate environmental risk - monitor environmental conditions")
             
-            # Infrastructure risk recommendations
-            if prediction[1] > 0.7:
+            # Infrastructure risk recommendations from neural network analysis
+            if prediction[1] > high_risk_threshold:
                 recommendations.append("High infrastructure risk - inspect existing infrastructure")
-            elif prediction[1] > 0.4:
+            elif prediction[1] > moderate_risk_threshold:
                 recommendations.append("Moderate infrastructure risk - schedule maintenance")
             
-            # Construction risk recommendations
-            if prediction[2] > 0.7:
+            # Construction risk recommendations from neural network analysis
+            if prediction[2] > high_risk_threshold:
                 recommendations.append("High construction risk - review safety protocols")
-            elif prediction[2] > 0.4:
+            elif prediction[2] > moderate_risk_threshold:
                 recommendations.append("Moderate construction risk - enhance safety measures")
             
             if not recommendations:

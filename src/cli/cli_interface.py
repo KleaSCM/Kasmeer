@@ -1,6 +1,6 @@
 # Author: KleaSCM
 # Date: 2024
-# CLI Interface Module 
+# CLI Interface Module
 # Description: - Provides command-line interface for civil engineering neural network system
 
 import click
@@ -16,11 +16,9 @@ from rich.syntax import Syntax
 import json
 
 from ..data.data_processor import DataProcessor
-from ..data.flexible_data_processor import FlexibleDataProcessor
 from ..ml.neural_network import CivilEngineeringSystem
 from ..core.query_engine import QueryEngine
-from utils.logging_utils import setup_logging, log_performance
-from .dataset_setup import dataset_setup
+from ..utils.logging_utils import setup_logging, log_performance
 
 console = Console()
 
@@ -56,14 +54,8 @@ def train(data_dir, model_dir):
             data_processor = DataProcessor(data_dir)
             neural_network = CivilEngineeringSystem(model_dir)
             
-            progress.update(task, description="Loading infrastructure data...")
-            infra_data = data_processor.load_infrastructure_data()
-            
-            progress.update(task, description="Loading vegetation data...")
-            veg_data = data_processor.load_vegetation_data()
-            
-            progress.update(task, description="Loading climate data...")
-            climate_data = data_processor.load_climate_data()
+            progress.update(task, description="Discovering and loading datasets...")
+            loaded_data = data_processor.discover_and_load_all_data()
             
             progress.update(task, description="Creating spatial indexes...")
             spatial_data = data_processor.create_spatial_index()
@@ -129,9 +121,7 @@ def query(model_dir, data_dir):
             console.print("[yellow]⚠️ No trained model found. Starting with data-only mode.[/yellow]")
         
         # Load data
-        data_processor.load_infrastructure_data()
-        data_processor.load_vegetation_data()
-        data_processor.load_climate_data()
+        data_processor.discover_and_load_all_data()
         data_processor.create_spatial_index()
         
         # Initialize query engine
@@ -180,24 +170,23 @@ def query(model_dir, data_dir):
 @click.argument('query_text')
 @click.option('--model-dir', default='models', help='Directory containing models')
 @click.option('--data-dir', default='DataSets', help='Directory containing datasets')
+@click.option('--config-path', default='config.yaml', help='Path to configuration file')
 @click.option('--output', '-o', help='Output file for results (JSON format)')
 @log_performance(logger)
-def ask(query_text, model_dir, data_dir, output):
+def ask(query_text, model_dir, data_dir, config_path, output):
     # Ask a single query and get results
-    logger.info(f"ask command: query_text={query_text}, model_dir={model_dir}, data_dir={data_dir}, output={output}")
+    logger.info(f"ask command: query_text={query_text}, model_dir={model_dir}, data_dir={data_dir}, config_path={config_path}, output={output}")
     
     try:
-        # Load components
-        data_processor = DataProcessor(data_dir)
+        # Load components with proper config
+        data_processor = DataProcessor(config_path)
         neural_network = CivilEngineeringSystem(model_dir)
         
         # Load model if available
         neural_network.load_model()
         
         # Load data
-        data_processor.load_infrastructure_data()
-        data_processor.load_vegetation_data()
-        data_processor.load_climate_data()
+        data_processor.discover_and_load_all_data()
         data_processor.create_spatial_index()
         
         # Initialize query engine
@@ -221,7 +210,7 @@ def ask(query_text, model_dir, data_dir, output):
         else:
             # Display to console
             console.print(Panel(response, title="Query Result"))
-            
+        
     except Exception as e:
         console.print(f"[red]❌ Error processing query: {e}[/red]")
 
@@ -283,10 +272,7 @@ def data_info(data_dir, config_path):
         data_processor = DataProcessor(data_dir)
         
         # Load all data to get summary
-        data_processor.load_infrastructure_data()
-        data_processor.load_vegetation_data()
-        data_processor.load_climate_data()
-        data_processor.load_wind_data()
+        data_processor.discover_and_load_all_data()
         
         summary = data_processor.get_data_summary()
         
@@ -320,7 +306,7 @@ def data_info(data_dir, config_path):
                 console.print(f"  • ... and {len(files) - 10} more files")
         else:
             console.print(f"  ❌ Directory {data_dir} not found")
-            
+        
     except Exception as e:
         console.print(f"[red]❌ Error getting data info: {e}[/red]")
         logger.error(f"Data info error: {e}")
@@ -588,8 +574,7 @@ def use_version(version_id, model_dir):
     except Exception as e:
         console.print(f"[red]❌ Error switching version: {e}[/red]")
 
-# Add dataset setup commands to the main CLI
-cli.add_command(dataset_setup)
-
 if __name__ == '__main__':
+    from .dataset_setup import dataset_setup
+    cli.add_command(dataset_setup)
     cli() 

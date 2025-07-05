@@ -8,7 +8,7 @@ import numpy as np
 from pathlib import Path
 from typing import Dict, List, Tuple, Optional
 import logging
-from utils.logging_utils import setup_logging, log_performance
+from ..utils.logging_utils import setup_logging, log_performance
 
 logger = setup_logging(__name__)
 

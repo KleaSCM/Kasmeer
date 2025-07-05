@@ -9,8 +9,7 @@ import hashlib
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 from datetime import datetime
-import logging
-from utils.logging_utils import setup_logging, log_performance
+from ..utils.logging_utils import setup_logging, log_performance
 
 logger = setup_logging(__name__)
 

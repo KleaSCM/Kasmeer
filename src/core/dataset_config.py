@@ -9,7 +9,7 @@ import numpy as np
 from pathlib import Path
 from typing import Dict, List, Tuple, Optional, Any, Union
 import logging
-from utils.logging_utils import setup_logging, log_performance
+from ..utils.logging_utils import setup_logging, log_performance
 import glob
 import re
 
@@ -67,13 +67,13 @@ class DatasetConfig:
                 'infrastructure': {
                     'enabled': True,
                     'file_patterns': ['*infrastructure*', '*pipes*', '*drainage*'],
-                    'required_columns': ['Pipe Type', 'Diameter'],
+                    'required_columns': [],  # Dataset agnostic - no hardcoded requirements
                     'optional_columns': []
                 },
                 'vegetation': {
                     'enabled': True,
                     'file_patterns': ['*vegetation*', '*zones*'],
-                    'required_columns': ['Zone', 'Type'],
+                    'required_columns': [],  # Dataset agnostic - no hardcoded requirements
                     'optional_columns': []
                 },
                 'climate': {
@@ -234,13 +234,15 @@ class DatasetConfig:
                 mapped_col = column_mappings.get(col, col)
                 mapped_columns.append(mapped_col)
             
-            # Check if required columns are present (after mapping)
+            # Check if required columns are present (after mapping) - dataset agnostic
             missing_required = []
             for req_col in required_columns:
                 if req_col not in mapped_columns and req_col not in df.columns:
                     missing_required.append(req_col)
             
-            if missing_required:
+            # Only fail if there are hardcoded required columns (for backward compatibility)
+            # In dataset agnostic mode, we accept any columns
+            if missing_required and required_columns:
                 logger.debug(f"Missing required columns: {missing_required}")
                 return None
             

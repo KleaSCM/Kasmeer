@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 from datetime import datetime
 import logging
-from utils.logging_utils import setup_logging, log_performance
+from ..utils.logging_utils import setup_logging, log_performance
 
 logger = setup_logging(__name__)
 
@@ -150,10 +150,7 @@ class IncrementalTrainer:
             logger.debug("Data processor initialized")
             
             # Load all data (including new)
-            data_processor.load_infrastructure_data()
-            data_processor.load_vegetation_data()
-            data_processor.load_climate_data()
-            data_processor.load_wind_data()
+            data_processor.discover_and_load_all_data()
             logger.debug("All data loaded")
             
             # Prepare training data

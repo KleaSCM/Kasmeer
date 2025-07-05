@@ -13,7 +13,7 @@ from rich.table import Table
 from rich.prompt import Prompt, Confirm
 from rich.panel import Panel
 from rich.text import Text
-from utils.logging_utils import setup_logging, log_performance
+from ..utils.logging_utils import setup_logging, log_performance
 from src.core.dataset_config import DatasetConfig
 
 console = Console()
