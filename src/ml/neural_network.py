@@ -1291,6 +1291,178 @@ class CivilEngineeringSystem:
             'estimated_completion': f"{total_days} days from start"
         }
     
+    def _optimize_construction_timeline(self, risk_assessment: Dict, features: Dict) -> Dict:
+        # Optimize construction timeline based on risks and site conditions
+        # Args:
+        #   risk_assessment: Risk assessment dictionary
+        #   features: Features dictionary
+        # Returns: Optimized timeline dictionary
+        logger.debug("Optimizing construction timeline")
+        
+        try:
+            # Get base timeline
+            base_timeline = self._estimate_construction_timeline(risk_assessment)
+            base_days = base_timeline['total_duration_days']
+            
+            # Apply optimization factors
+            optimization_factors = []
+            
+            # Risk-based optimization
+            overall_risk = risk_assessment.get('overall_risk', 0.5)
+            if overall_risk > 0.7:
+                optimization_factors.append(1.5)  # 50% longer for high risk
+            elif overall_risk > 0.4:
+                optimization_factors.append(1.2)  # 20% longer for moderate risk
+            else:
+                optimization_factors.append(1.0)  # No change for low risk
+            
+            # Site condition optimization
+            if features.get('flood_risk', 0) > 0.5:
+                optimization_factors.append(1.3)  # 30% longer for flood risk
+            
+            if features.get('soil_risk', 0) > 0.5:
+                optimization_factors.append(1.25)  # 25% longer for soil issues
+            
+            # Calculate optimized duration
+            optimization_multiplier = sum(optimization_factors) / len(optimization_factors)
+            optimized_days = int(base_days * optimization_multiplier)
+            
+            # Add parallel work opportunities
+            parallel_work_savings = self._calculate_parallel_work_savings(features)
+            final_days = max(optimized_days - parallel_work_savings, base_days)
+            
+            return {
+                'total_duration_days': final_days,
+                'estimated_completion': f"{final_days} days from start",
+                'optimization_multiplier': optimization_multiplier,
+                'parallel_work_savings': parallel_work_savings,
+                'optimization_factors': optimization_factors
+            }
+            
+        except Exception as e:
+            logger.error(f"Error optimizing timeline: {e}")
+            return self._estimate_construction_timeline(risk_assessment)
+    
+    def _allocate_construction_resources(self, risk_assessment: Dict, features: Dict) -> Dict:
+        # Allocate construction resources based on project requirements
+        # Args:
+        #   risk_assessment: Risk assessment dictionary
+        #   features: Features dictionary
+        # Returns: Resource allocation dictionary
+        logger.debug("Allocating construction resources")
+        
+        try:
+            # Base resource requirements
+            resources = {
+                'labor': {
+                    'skilled_workers': 10,
+                    'unskilled_workers': 20,
+                    'supervisors': 2,
+                    'engineers': 1
+                },
+                'equipment': {
+                    'excavators': 2,
+                    'bulldozers': 1,
+                    'cranes': 1,
+                    'trucks': 3
+                },
+                'materials': {
+                    'concrete': '500 cubic meters',
+                    'steel': '50 tons',
+                    'pipes': '1000 meters',
+                    'aggregate': '1000 cubic meters'
+                },
+                'estimated_cost': 500000.0
+            }
+            
+            # Adjust based on risk levels
+            overall_risk = risk_assessment.get('overall_risk', 0.5)
+            if overall_risk > 0.7:
+                # High risk - increase resources
+                resources['labor']['skilled_workers'] = 15
+                resources['labor']['supervisors'] = 3
+                resources['equipment']['excavators'] = 3
+                resources['estimated_cost'] = 750000.0
+            elif overall_risk < 0.3:
+                # Low risk - optimize resources
+                resources['labor']['skilled_workers'] = 8
+                resources['labor']['unskilled_workers'] = 15
+                resources['estimated_cost'] = 400000.0
+            
+            # Adjust based on site conditions
+            if features.get('flood_risk', 0) > 0.5:
+                resources['equipment']['pumps'] = 2
+                resources['materials']['flood_protection'] = '1000 square meters'
+                resources['estimated_cost'] += 50000.0
+            
+            if features.get('soil_risk', 0) > 0.5:
+                resources['equipment']['soil_stabilization'] = 1
+                resources['materials']['soil_stabilizers'] = '50 tons'
+                resources['estimated_cost'] += 30000.0
+            
+            return resources
+            
+        except Exception as e:
+            logger.error(f"Error allocating resources: {e}")
+            return {
+                'labor': {'skilled_workers': 10, 'unskilled_workers': 20, 'supervisors': 2, 'engineers': 1},
+                'equipment': {'excavators': 2, 'bulldozers': 1, 'cranes': 1, 'trucks': 3},
+                'materials': {'concrete': '500 cubic meters', 'steel': '50 tons', 'pipes': '1000 meters'},
+                'estimated_cost': 500000.0
+            }
+    
+    def _calculate_parallel_work_savings(self, features: Dict) -> int:
+        # Calculate time savings from parallel work opportunities
+        # Args:
+        #   features: Features dictionary
+        # Returns: Days saved from parallel work
+        savings = 0
+        
+        # Site preparation can be done in parallel with design finalization
+        if features.get('infrastructure', {}).get('count', 0) > 0:
+            savings += 3  # 3 days saved
+        
+        # Environmental work can be done in parallel with main construction
+        if features.get('climate') or features.get('vegetation'):
+            savings += 2  # 2 days saved
+        
+        return savings
+    
+    def _calculate_optimization_score(self, risk_assessment: Dict, features: Dict) -> float:
+        # Calculate optimization score for the construction plan
+        # Args:
+        #   risk_assessment: Risk assessment dictionary
+        #   features: Features dictionary
+        # Returns: Optimization score between 0 and 1
+        try:
+            # Base optimization factors
+            optimization_factors = []
+            
+            # Risk-based optimization
+            overall_risk = risk_assessment.get('overall_risk', 0.5)
+            if overall_risk < 0.3:
+                optimization_factors.append(0.9)  # High optimization for low risk
+            elif overall_risk < 0.6:
+                optimization_factors.append(0.7)  # Moderate optimization
+            else:
+                optimization_factors.append(0.5)  # Limited optimization for high risk
+            
+            # Data completeness optimization
+            data_completeness = self._calculate_data_completeness(features)
+            optimization_factors.append(data_completeness * 0.8)
+            
+            # Site condition optimization
+            if features.get('flood_risk', 0) < 0.3 and features.get('soil_risk', 0) < 0.3:
+                optimization_factors.append(0.8)  # Good site conditions
+            else:
+                optimization_factors.append(0.6)  # Challenging site conditions
+            
+            return sum(optimization_factors) / len(optimization_factors)
+            
+        except Exception as e:
+            logger.error(f"Error calculating optimization score: {e}")
+            return 0.5
+    
     def _identify_construction_requirements(self, features: Dict) -> List[str]:
         # Identify construction requirements
         # Args:
