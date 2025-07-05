@@ -514,9 +514,7 @@ class CivilEngineeringSystem:
         #   lat: Latitude coordinate
         #   lon: Longitude coordinate
         #   data_processor: Data processor instance
-        # Returns: Dictionary with environmental analysis
-        # TODO: Add climate change impact assessment
-        # TODO: Include biodiversity analysis
+        # Returns: Dictionary with environmental analysis including climate change impact and biodiversity
         logger.debug(f"Making environmental analysis at location: ({lat}, {lon})")
         
         try:
@@ -527,13 +525,15 @@ class CivilEngineeringSystem:
             climate_data = data_processor.processed_data.get('climate', {})
             vegetation_data = data_processor.processed_data.get('vegetation', pd.DataFrame())
             
-            # Analyze environmental factors
+            # Analyze environmental factors including climate change and biodiversity
             environmental_info = {
                 'climate_data': self._analyze_climate_data(climate_data),
                 'vegetation_zones': self._analyze_vegetation_data(vegetation_data),
                 'soil_conditions': self._analyze_soil_conditions(features),
                 'water_resources': self._analyze_water_resources(features),
                 'environmental_risks': self._identify_environmental_risks(features),
+                'climate_change_impact': self._assess_climate_change_impact(climate_data, features),
+                'biodiversity_analysis': self._analyze_biodiversity(vegetation_data, features),
                 'data_completeness': self._calculate_data_completeness(features),
                 'confidence': self._calculate_prediction_confidence(features),
                 'recommendations': self._generate_environmental_recommendations(features),
@@ -562,9 +562,7 @@ class CivilEngineeringSystem:
         #   lat: Latitude coordinate
         #   lon: Longitude coordinate
         #   data_processor: Data processor instance
-        # Returns: Dictionary with construction plan
-        # TODO: Add timeline optimization
-        # TODO: Include resource allocation
+        # Returns: Dictionary with construction plan including optimized timeline and resource allocation
         logger.debug(f"Making construction plan at location: ({lat}, {lon})")
         
         try:
@@ -574,14 +572,16 @@ class CivilEngineeringSystem:
             # Get risk assessment for construction planning
             risk_assessment = self.predict_at_location(lat, lon, data_processor)
             
-            # Generate construction plan based on risks and data
+            # Generate construction plan based on risks and data with optimization
             construction_plan = {
                 'phases': self._generate_construction_phases(risk_assessment),
-                'timeline': self._estimate_construction_timeline(risk_assessment),
+                'timeline': self._optimize_construction_timeline(risk_assessment, features),
+                'resource_allocation': self._allocate_construction_resources(risk_assessment, features),
                 'requirements': self._identify_construction_requirements(features),
                 'safety_protocols': self._generate_safety_protocols(risk_assessment),
                 'environmental_impact': self._assess_construction_impact(features),
                 'regulatory_compliance': self._check_regulatory_compliance(features),
+                'optimization_score': self._calculate_optimization_score(risk_assessment, features),
                 'confidence': risk_assessment.get('confidence', 0.0),
                 'recommendations': risk_assessment.get('recommendations', []),
                 'data_sources': self._get_data_sources(features)
@@ -1107,6 +1107,144 @@ class CivilEngineeringSystem:
             recommendations.append("Conduct detailed soil analysis")
         
         return recommendations
+    
+    def _assess_climate_change_impact(self, climate_data: Dict, features: Dict) -> Dict:
+        # Assess climate change impact based on current climate data and trends
+        # Args:
+        #   climate_data: Climate data dictionary
+        #   features: Features dictionary
+        # Returns: Climate change impact assessment
+        logger.debug("Assessing climate change impact")
+        
+        try:
+            impact_assessment = {
+                'impact_level': 'moderate',
+                'temperature_trend': 'increasing',
+                'precipitation_trend': 'variable',
+                'sea_level_risk': 'low',
+                'extreme_weather_risk': 'moderate',
+                'adaptation_measures': [],
+                'mitigation_priorities': []
+            }
+            
+            # Analyze temperature trends
+            if climate_data.get('temperature_avg', 0) > 25:
+                impact_assessment.update({
+                    'impact_level': 'high',
+                    'temperature_trend': 'significantly_increasing',
+                    'extreme_weather_risk': 'high',
+                    'adaptation_measures': ['Heat-resistant infrastructure', 'Cooling systems'],
+                    'mitigation_priorities': ['Reduce heat island effects', 'Implement green infrastructure']
+                })
+            
+            # Analyze precipitation patterns
+            if climate_data.get('precipitation', 0) > 150:
+                impact_assessment.update({
+                    'precipitation_trend': 'increasing',
+                    'extreme_weather_risk': 'high',
+                    'adaptation_measures': ['Enhanced drainage systems', 'Flood protection'],
+                    'mitigation_priorities': ['Water management systems', 'Sustainable drainage']
+                })
+            
+            # Assess sea level risk for coastal areas
+            if features.get('elevation', 100) < 10:
+                impact_assessment.update({
+                    'sea_level_risk': 'high',
+                    'adaptation_measures': ['Coastal protection', 'Elevation planning'],
+                    'mitigation_priorities': ['Coastal zone management', 'Ecosystem restoration']
+                })
+            
+            return impact_assessment
+            
+        except Exception as e:
+            logger.error(f"Error assessing climate change impact: {e}")
+            return {
+                'impact_level': 'unknown',
+                'temperature_trend': 'unknown',
+                'precipitation_trend': 'unknown',
+                'sea_level_risk': 'unknown',
+                'extreme_weather_risk': 'unknown',
+                'adaptation_measures': ['Conduct climate impact assessment'],
+                'mitigation_priorities': ['Develop climate adaptation plan']
+            }
+    
+    def _analyze_biodiversity(self, vegetation_data: pd.DataFrame, features: Dict) -> Dict:
+        # Analyze biodiversity based on vegetation data and environmental features
+        # Args:
+        #   vegetation_data: Vegetation DataFrame
+        #   features: Features dictionary
+        # Returns: Biodiversity analysis
+        logger.debug("Analyzing biodiversity")
+        
+        try:
+            biodiversity_analysis = {
+                'biodiversity_level': 'moderate',
+                'species_richness': 'unknown',
+                'habitat_quality': 'moderate',
+                'threatened_species': 'unknown',
+                'conservation_priorities': [],
+                'restoration_opportunities': []
+            }
+            
+            if isinstance(vegetation_data, pd.DataFrame) and not vegetation_data.empty:
+                # Analyze vegetation diversity
+                zone_count = len(vegetation_data)
+                if 'Type' in vegetation_data.columns:
+                    type_series = vegetation_data['Type']
+                    unique_types = type_series.unique() if type_series is not None else []
+                    species_richness = len(unique_types)
+                    
+                    if species_richness > 10:
+                        biodiversity_analysis.update({
+                            'biodiversity_level': 'high',
+                            'species_richness': 'high',
+                            'habitat_quality': 'high',
+                            'conservation_priorities': ['Protect existing habitats', 'Monitor species populations'],
+                            'restoration_opportunities': ['Enhance habitat connectivity', 'Restore native species']
+                        })
+                    elif species_richness > 5:
+                        biodiversity_analysis.update({
+                            'biodiversity_level': 'moderate',
+                            'species_richness': 'moderate',
+                            'habitat_quality': 'moderate',
+                            'conservation_priorities': ['Maintain habitat diversity', 'Monitor ecosystem health'],
+                            'restoration_opportunities': ['Increase species diversity', 'Improve habitat quality']
+                        })
+                    else:
+                        biodiversity_analysis.update({
+                            'biodiversity_level': 'low',
+                            'species_richness': 'low',
+                            'habitat_quality': 'poor',
+                            'conservation_priorities': ['Restore ecosystem function', 'Introduce native species'],
+                            'restoration_opportunities': ['Create new habitats', 'Implement biodiversity corridors']
+                        })
+                else:
+                    biodiversity_analysis.update({
+                        'species_richness': 'unknown',
+                        'conservation_priorities': ['Conduct biodiversity survey'],
+                        'restoration_opportunities': ['Assess restoration potential']
+                    })
+            else:
+                biodiversity_analysis.update({
+                    'biodiversity_level': 'unknown',
+                    'species_richness': 'unknown',
+                    'habitat_quality': 'unknown',
+                    'conservation_priorities': ['Conduct biodiversity assessment'],
+                    'restoration_opportunities': ['Develop biodiversity baseline']
+                })
+            
+            return biodiversity_analysis
+            
+        except Exception as e:
+            logger.error(f"Error analyzing biodiversity: {e}")
+            return {
+                'biodiversity_level': 'unknown',
+                'species_richness': 'unknown',
+                'habitat_quality': 'unknown',
+                'threatened_species': 'unknown',
+                'conservation_priorities': ['Conduct biodiversity assessment'],
+                'restoration_opportunities': ['Develop biodiversity management plan']
+            }
     
     def _generate_construction_phases(self, risk_assessment: Dict) -> List[Dict]:
         # Generate construction phases based on risk assessment
