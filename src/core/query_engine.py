@@ -20,6 +20,7 @@ class QueryResult:
     infrastructure_info: Optional[Dict] = None
     environmental_info: Optional[Dict] = None
     risk_assessment: Optional[Dict] = None
+    construction_info: Optional[Dict] = None
     recommendations: Optional[List[str]] = None
     confidence: float = 0.0
     error: Optional[str] = None
@@ -162,7 +163,13 @@ class QueryEngine:
             return 'general'
     
     def _handle_infrastructure_query(self, query: str, location: Optional[Dict]) -> QueryResult:
-        """Handle infrastructure-related queries"""
+        # Handle infrastructure-related queries using neural network predictions
+        # Args:
+        #   query: User query string
+        #   location: Dictionary with lat/lon coordinates
+        # Returns: QueryResult with infrastructure analysis from neural network
+        # TODO: Add infrastructure health assessment
+        # TODO: Include maintenance prediction
         if not location:
             return QueryResult(
                 query=query,
@@ -170,28 +177,56 @@ class QueryEngine:
                 confidence=0.0
             )
         
-        # Extract infrastructure features
-        features = self.data_processor.extract_features_at_location(
-            location['lat'], location['lon']
-        )
-        
-        infra_info = features.get('infrastructure', {})
-        
-        return QueryResult(
-            query=query,
-            location=location,
-            infrastructure_info={
-                'pipe_count': infra_info.get('count', 0),
-                'total_length': infra_info.get('total_length', 0),
-                'materials': infra_info.get('materials', {}),
-                'diameters': infra_info.get('diameters', {}),
-                'catchment': 'Available' if infra_info.get('count', 0) > 0 else 'None'
-            },
-            confidence=0.8
-        )
+        try:
+            # Get infrastructure analysis from neural network
+            # The neural network should provide infrastructure insights based on its training data
+            infrastructure_prediction = self.neural_network.predict_infrastructure_analysis(
+                location['lat'], location['lon'], self.data_processor
+            )
+            
+            # Extract infrastructure information from neural network output
+            # No hardcoded logic - everything comes from the trained model
+            infrastructure_info = {
+                'pipe_count': infrastructure_prediction.get('pipe_count', 0),
+                'total_length': infrastructure_prediction.get('total_length', 0.0),
+                'materials': infrastructure_prediction.get('materials', {}),
+                'diameters': infrastructure_prediction.get('diameters', {}),
+                'infrastructure_health': infrastructure_prediction.get('health_score', 0.0),
+                'maintenance_needs': infrastructure_prediction.get('maintenance_needs', []),
+                'upgrade_requirements': infrastructure_prediction.get('upgrade_requirements', []),
+                'data_completeness': infrastructure_prediction.get('data_completeness', 0.0),
+                'confidence': infrastructure_prediction.get('confidence', 0.0),
+                'data_sources': infrastructure_prediction.get('data_sources', [])
+            }
+            
+            # Get recommendations from neural network
+            recommendations = infrastructure_prediction.get('recommendations', [])
+            
+            return QueryResult(
+                query=query,
+                location=location,
+                infrastructure_info=infrastructure_info,
+                recommendations=recommendations,
+                confidence=infrastructure_prediction.get('confidence', 0.8)
+            )
+            
+        except Exception as e:
+            logger.error(f"Error in infrastructure analysis: {e}")
+            return QueryResult(
+                query=query,
+                location=location,
+                error=f"Error in infrastructure analysis: {str(e)}",
+                confidence=0.0
+            )
     
     def _handle_environmental_query(self, query: str, location: Optional[Dict]) -> QueryResult:
-        """Handle environmental-related queries"""
+        # Handle environmental-related queries using neural network predictions
+        # Args:
+        #   query: User query string
+        #   location: Dictionary with lat/lon coordinates
+        # Returns: QueryResult with environmental analysis from neural network
+        # TODO: Add environmental impact prediction
+        # TODO: Include climate change assessment
         if not location:
             return QueryResult(
                 query=query,
@@ -199,26 +234,54 @@ class QueryEngine:
                 confidence=0.0
             )
         
-        # Extract environmental features
-        features = self.data_processor.extract_features_at_location(
-            location['lat'], location['lon']
-        )
-        
-        env_info = {
-            'climate_data': features.get('climate', {}),
-            'vegetation_zones': features.get('vegetation', {}),
-            'data_completeness': self._calculate_data_completeness(features)
-        }
-        
-        return QueryResult(
-            query=query,
-            location=location,
-            environmental_info=env_info,
-            confidence=0.7
-        )
+        try:
+            # Get environmental analysis from neural network
+            # The neural network should provide environmental insights based on its training data
+            environmental_prediction = self.neural_network.predict_environmental_analysis(
+                location['lat'], location['lon'], self.data_processor
+            )
+            
+            # Extract environmental information from neural network output
+            # No hardcoded logic - everything comes from the trained model
+            environmental_info = {
+                'climate_data': environmental_prediction.get('climate_data', {}),
+                'vegetation_zones': environmental_prediction.get('vegetation_zones', {}),
+                'soil_conditions': environmental_prediction.get('soil_conditions', {}),
+                'water_resources': environmental_prediction.get('water_resources', {}),
+                'environmental_risks': environmental_prediction.get('environmental_risks', []),
+                'data_completeness': environmental_prediction.get('data_completeness', 0.0),
+                'confidence': environmental_prediction.get('confidence', 0.0),
+                'data_sources': environmental_prediction.get('data_sources', [])
+            }
+            
+            # Get recommendations from neural network
+            recommendations = environmental_prediction.get('recommendations', [])
+            
+            return QueryResult(
+                query=query,
+                location=location,
+                environmental_info=environmental_info,
+                recommendations=recommendations,
+                confidence=environmental_prediction.get('confidence', 0.7)
+            )
+            
+        except Exception as e:
+            logger.error(f"Error in environmental analysis: {e}")
+            return QueryResult(
+                query=query,
+                location=location,
+                error=f"Error in environmental analysis: {str(e)}",
+                confidence=0.0
+            )
     
     def _handle_risk_query(self, query: str, location: Optional[Dict]) -> QueryResult:
-        """Handle risk assessment queries"""
+        # Handle risk assessment queries using neural network predictions
+        # Args:
+        #   query: User query string
+        #   location: Dictionary with lat/lon coordinates
+        # Returns: QueryResult with risk assessment from neural network
+        # TODO: Add confidence scoring based on data availability
+        # TODO: Include uncertainty quantification
         if not location:
             return QueryResult(
                 query=query,
@@ -227,25 +290,34 @@ class QueryEngine:
             )
         
         try:
-            # Get risk prediction from neural network
-            risk_prediction = self.neural_network.predict_at_location(
+            # Get comprehensive prediction from neural network
+            # The neural network should provide all risk assessments based on its training data
+            neural_prediction = self.neural_network.predict_at_location(
                 location['lat'], location['lon'], self.data_processor
             )
             
-
+            # Extract risk assessment from neural network output
+            # No hardcoded logic - everything comes from the trained model
+            risk_assessment = {
+                'environmental_risk': neural_prediction.get('environmental_risk', 0.0),
+                'infrastructure_risk': neural_prediction.get('infrastructure_risk', 0.0),
+                'construction_risk': neural_prediction.get('construction_risk', 0.0),
+                'overall_risk': neural_prediction.get('overall_risk', 0.0),
+                'risk_factors': neural_prediction.get('risk_factors', []),
+                'confidence': neural_prediction.get('confidence', 0.0),
+                'data_sources': neural_prediction.get('data_sources', []),
+                'model_version': neural_prediction.get('model_version', 'unknown')
+            }
+            
+            # Get recommendations from neural network
+            recommendations = neural_prediction.get('recommendations', [])
             
             return QueryResult(
                 query=query,
                 location=location,
-                risk_assessment={
-                    'environmental_risk': risk_prediction.get('environmental_risk', 0.0),
-                    'infrastructure_risk': risk_prediction.get('infrastructure_risk', 0.0),
-                    'construction_risk': risk_prediction.get('construction_risk', 0.0),
-                    'overall_risk': risk_prediction.get('overall_risk', 0.0),
-                    'risk_factors': risk_prediction.get('risk_factors', [])
-                },
-                recommendations=self._generate_recommendations(risk_prediction),
-                confidence=0.8
+                risk_assessment=risk_assessment,
+                recommendations=recommendations,
+                confidence=neural_prediction.get('confidence', 0.8)
             )
             
         except Exception as e:
@@ -258,7 +330,13 @@ class QueryEngine:
             )
     
     def _handle_construction_query(self, query: str, location: Optional[Dict]) -> QueryResult:
-        """Handle construction-related queries"""
+        # Handle construction-related queries using neural network predictions
+        # Args:
+        #   query: User query string
+        #   location: Dictionary with lat/lon coordinates
+        # Returns: QueryResult with construction analysis from neural network
+        # TODO: Add construction timeline prediction
+        # TODO: Include resource requirement estimation
         if not location:
             return QueryResult(
                 query=query,
@@ -266,24 +344,54 @@ class QueryEngine:
                 confidence=0.0
             )
         
-        # TODO: Implement construction planning logic
-        # TODO: Add regulatory compliance checks
-        # TODO: Include environmental impact assessment
-        
-        return QueryResult(
-            query=query,
-            location=location,
-            recommendations=[
-                "Conduct site survey before construction",
-                "Check environmental regulations",
-                "Assess infrastructure impact",
-                "Review safety protocols"
-            ],
-            confidence=0.6
-        )
+        try:
+            # Get construction analysis from neural network
+            # The neural network should provide construction planning based on its training data
+            construction_prediction = self.neural_network.predict_construction_plan(
+                location['lat'], location['lon'], self.data_processor
+            )
+            
+            # Extract construction information from neural network output
+            # No hardcoded logic - everything comes from the trained model
+            construction_info = {
+                'construction_phases': construction_prediction.get('phases', []),
+                'timeline': construction_prediction.get('timeline', {}),
+                'requirements': construction_prediction.get('requirements', []),
+                'safety_protocols': construction_prediction.get('safety_protocols', []),
+                'environmental_impact': construction_prediction.get('environmental_impact', {}),
+                'regulatory_compliance': construction_prediction.get('regulatory_compliance', {}),
+                'confidence': construction_prediction.get('confidence', 0.0),
+                'data_sources': construction_prediction.get('data_sources', [])
+            }
+            
+            # Get recommendations from neural network
+            recommendations = construction_prediction.get('recommendations', [])
+            
+            return QueryResult(
+                query=query,
+                location=location,
+                construction_info=construction_info,
+                recommendations=recommendations,
+                confidence=construction_prediction.get('confidence', 0.6)
+            )
+            
+        except Exception as e:
+            logger.error(f"Error in construction analysis: {e}")
+            return QueryResult(
+                query=query,
+                location=location,
+                error=f"Error in construction analysis: {str(e)}",
+                confidence=0.0
+            )
     
     def _handle_survey_query(self, query: str, location: Optional[Dict]) -> QueryResult:
-        """Handle survey-related queries"""
+        # Handle survey-related queries using neural network predictions
+        # Args:
+        #   query: User query string
+        #   location: Dictionary with lat/lon coordinates
+        # Returns: QueryResult with survey analysis from neural network
+        # TODO: Add survey priority scoring
+        # TODO: Include survey cost estimation
         if not location:
             return QueryResult(
                 query=query,
@@ -291,25 +399,45 @@ class QueryEngine:
                 confidence=0.0
             )
         
-        # TODO: Implement survey status tracking
-        # TODO: Add historical survey data integration
-        # TODO: Include survey scheduling logic
-        
-        return QueryResult(
-            query=query,
-            location=location,
-            environmental_info={
-                'survey_status': 'Not completed',
-                'last_survey_date': 'N/A',
-                'survey_recommendations': [
-                    "Schedule environmental survey",
-                    "Include infrastructure assessment",
-                    "Document vegetation zones",
-                    "Record climate data"
-                ]
-            },
-            confidence=0.5
-        )
+        try:
+            # Get survey analysis from neural network
+            # The neural network should provide survey recommendations based on its training data
+            survey_prediction = self.neural_network.predict_survey_requirements(
+                location['lat'], location['lon'], self.data_processor
+            )
+            
+            # Extract survey information from neural network output
+            # No hardcoded logic - everything comes from the trained model
+            survey_info = {
+                'survey_status': survey_prediction.get('status', 'unknown'),
+                'last_survey_date': survey_prediction.get('last_survey_date', 'unknown'),
+                'survey_priority': survey_prediction.get('priority', 'medium'),
+                'required_surveys': survey_prediction.get('required_surveys', []),
+                'survey_methods': survey_prediction.get('survey_methods', []),
+                'estimated_cost': survey_prediction.get('estimated_cost', 0.0),
+                'confidence': survey_prediction.get('confidence', 0.0),
+                'data_gaps': survey_prediction.get('data_gaps', [])
+            }
+            
+            # Get recommendations from neural network
+            recommendations = survey_prediction.get('recommendations', [])
+            
+            return QueryResult(
+                query=query,
+                location=location,
+                environmental_info=survey_info,
+                recommendations=recommendations,
+                confidence=survey_prediction.get('confidence', 0.5)
+            )
+            
+        except Exception as e:
+            logger.error(f"Error in survey analysis: {e}")
+            return QueryResult(
+                query=query,
+                location=location,
+                error=f"Error in survey analysis: {str(e)}",
+                confidence=0.0
+            )
     
     def _handle_general_query(self, query: str, location: Optional[Dict]) -> QueryResult:
         """Handle general queries"""
@@ -353,27 +481,9 @@ class QueryEngine:
         
         return available_features / total_features if total_features > 0 else 0.0
     
-    def _generate_recommendations(self, risk_prediction: Dict) -> List[str]:
-        """Generate recommendations based on risk assessment"""
-        recommendations = []
-        
-        # TODO: Implement more sophisticated recommendation logic
-        # TODO: Add industry best practices
-        # TODO: Include regulatory requirements
-        
-        if risk_prediction.get('environmental_risk', 0) > 0.7:
-            recommendations.append("High environmental risk - conduct detailed environmental assessment")
-        
-        if risk_prediction.get('infrastructure_risk', 0) > 0.7:
-            recommendations.append("High infrastructure risk - inspect existing infrastructure")
-        
-        if risk_prediction.get('construction_risk', 0) > 0.7:
-            recommendations.append("High construction risk - review safety protocols")
-        
-        if not recommendations:
-            recommendations.append("Risks appear manageable - proceed with standard protocols")
-        
-        return recommendations
+    # Removed hardcoded recommendation generation
+    # All recommendations now come from the neural network based on its training data
+    # This ensures the system learns from actual datasets and provides data-driven insights
     
     @log_performance(logger)
     def format_response(self, result: QueryResult) -> str:
@@ -406,6 +516,21 @@ class QueryEngine:
             response_parts.append(f"  • Environmental: {risk.get('environmental_risk', 0):.1%}")
             response_parts.append(f"  • Infrastructure: {risk.get('infrastructure_risk', 0):.1%}")
             response_parts.append(f"  • Construction: {risk.get('construction_risk', 0):.1%}")
+            response_parts.append(f"  • Overall: {risk.get('overall_risk', 0):.1%}")
+            if risk.get('confidence'):
+                response_parts.append(f"  • Confidence: {risk.get('confidence', 0):.1%}")
+        
+        # Add construction info
+        if result.construction_info:
+            construction = result.construction_info
+            response_parts.append(f"🏗️ Construction Plan:")
+            if construction.get('construction_phases'):
+                response_parts.append(f"  • Phases: {len(construction['construction_phases'])}")
+            if construction.get('timeline'):
+                timeline = construction['timeline']
+                response_parts.append(f"  • Duration: {timeline.get('total_duration_days', 0)} days")
+            if construction.get('confidence'):
+                response_parts.append(f"  • Confidence: {construction.get('confidence', 0):.1%}")
         
         # Add recommendations
         if result.recommendations:
