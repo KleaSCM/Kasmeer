@@ -609,9 +609,7 @@ class CivilEngineeringSystem:
         #   lat: Latitude coordinate
         #   lon: Longitude coordinate
         #   data_processor: Data processor instance
-        # Returns: Dictionary with survey requirements
-        # TODO: Add survey cost estimation
-        # TODO: Include survey priority scoring
+        # Returns: Dictionary with survey requirements including cost estimation and priority scoring
         logger.debug(f"Making survey requirements prediction at location: ({lat}, {lon})")
         
         try:
@@ -621,14 +619,15 @@ class CivilEngineeringSystem:
             # Assess data gaps and survey needs
             data_completeness = self._calculate_data_completeness(features)
             
-            # Determine survey requirements based on data gaps
+            # Determine survey requirements based on data gaps with enhanced cost and priority analysis
             survey_requirements = {
                 'status': 'unknown',
                 'last_survey_date': 'unknown',
                 'survey_priority': 'medium',
                 'required_surveys': self._identify_required_surveys(features),
                 'survey_methods': self._recommend_survey_methods(features),
-                'estimated_cost': self._estimate_survey_cost(features),
+                'survey_cost_estimation': self._estimate_survey_costs(features),
+                'survey_priority_scoring': self._calculate_survey_priority_scores(features),
                 'confidence': data_completeness,
                 'recommendations': self._generate_survey_recommendations(features),
                 'data_gaps': self._identify_data_gaps(features)
@@ -1555,6 +1554,159 @@ class CivilEngineeringSystem:
             base_cost += 1500.0
         
         return base_cost
+    
+    def _estimate_survey_costs(self, features: Dict) -> Dict:
+        # Estimate detailed survey costs for different survey types
+        # Args:
+        #   features: Features dictionary
+        # Returns: Detailed cost estimation dictionary
+        logger.debug("Estimating survey costs")
+        
+        try:
+            cost_breakdown = {
+                'total_estimated_cost': 0.0,
+                'cost_breakdown': {},
+                'cost_factors': [],
+                'budget_recommendations': []
+            }
+            
+            # Base costs for different survey types
+            survey_costs = {
+                'geotechnical_survey': 15000.0,
+                'environmental_survey': 12000.0,
+                'infrastructure_survey': 8000.0,
+                'topographic_survey': 5000.0,
+                'hydrological_survey': 10000.0,
+                'soil_survey': 7000.0
+            }
+            
+            # Identify required surveys
+            required_surveys = self._identify_required_surveys(features)
+            total_cost = 0.0
+            
+            for survey in required_surveys:
+                survey_lower = survey.lower().replace(' ', '_')
+                base_cost = survey_costs.get(survey_lower, 10000.0)
+                
+                # Apply cost factors based on site conditions
+                cost_multiplier = 1.0
+                if features.get('flood_risk', 0) > 0.5:
+                    cost_multiplier += 0.3
+                if features.get('soil_risk', 0) > 0.5:
+                    cost_multiplier += 0.2
+                if features.get('infrastructure', {}).get('count', 0) > 50:
+                    cost_multiplier += 0.1
+                
+                adjusted_cost = base_cost * cost_multiplier
+                cost_breakdown['cost_breakdown'][survey] = {
+                    'base_cost': base_cost,
+                    'adjusted_cost': adjusted_cost,
+                    'cost_multiplier': cost_multiplier,
+                    'factors': self._identify_cost_factors(features, survey)
+                }
+                
+                total_cost += adjusted_cost
+            
+            cost_breakdown['total_estimated_cost'] = total_cost
+            cost_breakdown['cost_factors'] = self._identify_overall_cost_factors(features)
+            cost_breakdown['budget_recommendations'] = self._generate_budget_recommendations(total_cost, features)
+            
+            return cost_breakdown
+            
+        except Exception as e:
+            logger.error(f"Error estimating survey costs: {e}")
+            return {
+                'total_estimated_cost': 10000.0,
+                'cost_breakdown': {},
+                'cost_factors': ['Error in cost estimation'],
+                'budget_recommendations': ['Conduct manual cost assessment']
+            }
+    
+    def _calculate_survey_priority_scores(self, features: Dict) -> Dict:
+        # Calculate priority scores for different survey types
+        # Args:
+        #   features: Features dictionary
+        # Returns: Priority scoring dictionary
+        logger.debug("Calculating survey priority scores")
+        
+        try:
+            priority_scores = {
+                'overall_priority': 'medium',
+                'priority_breakdown': {},
+                'priority_factors': [],
+                'recommended_sequence': []
+            }
+            
+            # Define priority criteria
+            priority_criteria = {
+                'geotechnical_survey': {
+                    'base_priority': 0.7,
+                    'risk_factors': ['soil_risk', 'flood_risk'],
+                    'data_gaps': ['soil_data', 'foundation_data']
+                },
+                'environmental_survey': {
+                    'base_priority': 0.6,
+                    'risk_factors': ['environmental_risk', 'climate_risk'],
+                    'data_gaps': ['environmental_data', 'climate_data']
+                },
+                'infrastructure_survey': {
+                    'base_priority': 0.8,
+                    'risk_factors': ['infrastructure_risk'],
+                    'data_gaps': ['infrastructure_data']
+                },
+                'topographic_survey': {
+                    'base_priority': 0.5,
+                    'risk_factors': ['site_conditions'],
+                    'data_gaps': ['topographic_data']
+                }
+            }
+            
+            # Calculate priority for each survey type
+            survey_priorities = {}
+            for survey, criteria in priority_criteria.items():
+                priority_score = criteria['base_priority']
+                
+                # Adjust based on risk factors
+                for risk_factor in criteria['risk_factors']:
+                    risk_value = features.get(risk_factor, 0)
+                    if risk_value > 0.5:
+                        priority_score += 0.2
+                    elif risk_value > 0.3:
+                        priority_score += 0.1
+                
+                # Adjust based on data gaps
+                data_completeness = self._calculate_data_completeness(features)
+                if data_completeness < 0.3:
+                    priority_score += 0.3
+                elif data_completeness < 0.6:
+                    priority_score += 0.1
+                
+                # Normalize to 0-1 range
+                priority_score = min(1.0, priority_score)
+                
+                survey_priorities[survey] = {
+                    'priority_score': priority_score,
+                    'priority_level': self._score_to_priority_level(priority_score),
+                    'urgency': self._calculate_urgency(priority_score, features)
+                }
+            
+            # Determine overall priority
+            avg_priority = sum(p['priority_score'] for p in survey_priorities.values()) / len(survey_priorities)
+            priority_scores['overall_priority'] = self._score_to_priority_level(avg_priority)
+            priority_scores['priority_breakdown'] = survey_priorities
+            priority_scores['priority_factors'] = self._identify_priority_factors(features)
+            priority_scores['recommended_sequence'] = self._generate_survey_sequence(survey_priorities)
+            
+            return priority_scores
+            
+        except Exception as e:
+            logger.error(f"Error calculating priority scores: {e}")
+            return {
+                'overall_priority': 'medium',
+                'priority_breakdown': {},
+                'priority_factors': ['Error in priority calculation'],
+                'recommended_sequence': []
+            }
     
     def _generate_survey_recommendations(self, features: Dict) -> List[str]:
         # Generate survey recommendations
