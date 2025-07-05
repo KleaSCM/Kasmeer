@@ -232,9 +232,7 @@ class QueryEngine:
                 location['lat'], location['lon'], self.data_processor
             )
             
-            # TODO: Implement more sophisticated risk calculation
-            # TODO: Add historical incident data integration
-            # TODO: Include regulatory compliance checks
+
             
             return QueryResult(
                 query=query,
