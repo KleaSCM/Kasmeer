@@ -16,9 +16,11 @@ from rich.syntax import Syntax
 import json
 
 from ..data.data_processor import DataProcessor
+from ..data.flexible_data_processor import FlexibleDataProcessor
 from ..ml.neural_network import CivilEngineeringSystem
 from ..core.query_engine import QueryEngine
 from utils.logging_utils import setup_logging, log_performance
+from .dataset_setup import dataset_setup
 
 console = Console()
 
@@ -225,12 +227,59 @@ def ask(query_text, model_dir, data_dir, output):
 
 @cli.command()
 @click.option('--data-dir', default='DataSets', help='Directory containing datasets')
+@click.option('--config-path', default='config.yaml', help='Path to configuration file')
 @log_performance(logger)
-def data_info(data_dir):
+def data_info(data_dir, config_path):
     # Show information about available datasets
-    logger.info(f"data-info command: data_dir={data_dir}")
+    logger.info(f"data-info command: data_dir={data_dir}, config_path={config_path}")
     
     try:
+        # Try flexible data processor first
+        try:
+            from src.core.dataset_config import DatasetConfig
+            dataset_config = DatasetConfig(config_path)
+            discovered_datasets = dataset_config.discover_datasets()
+            
+            if discovered_datasets:
+                console.print("\n[bold blue]Flexible Dataset Discovery[/bold blue]")
+                
+                table = Table(title="Discovered Datasets")
+                table.add_column("Dataset Type", style="cyan")
+                table.add_column("Files", style="magenta")
+                table.add_column("Status", style="green")
+                table.add_column("File Types", style="yellow")
+                
+                for dataset_type, info in discovered_datasets.items():
+                    files = info.get('files', [])
+                    file_types = list(set(f.get('file_type', 'unknown') for f in files))
+                    status = "✅ Ready" if info.get('enabled', True) else "❌ Disabled"
+                    
+                    table.add_row(
+                        dataset_type.replace('_', ' ').title(),
+                        str(len(files)),
+                        status,
+                        ', '.join(file_types)
+                    )
+                
+                console.print(table)
+                
+                # Show file details
+                console.print("\n[bold]File Details:[/bold]")
+                for dataset_type, info in discovered_datasets.items():
+                    files = info.get('files', [])
+                    if files:
+                        console.print(f"\n[cyan]{dataset_type.replace('_', ' ').title()}:[/cyan]")
+                        for file_info in files[:3]:  # Show first 3 files
+                            console.print(f"  • {file_info['name']} ({file_info['file_type']})")
+                        if len(files) > 3:
+                            console.print(f"  • ... and {len(files) - 3} more files")
+                
+                return
+                
+        except Exception as e:
+            logger.debug(f"Flexible processor failed, falling back to legacy: {e}")
+        
+        # Fallback to legacy data processor
         data_processor = DataProcessor(data_dir)
         
         # Load all data to get summary
@@ -241,7 +290,7 @@ def data_info(data_dir):
         
         summary = data_processor.get_data_summary()
         
-        console.print("\n[bold blue]Dataset Information[/bold blue]")
+        console.print("\n[bold blue]Legacy Dataset Information[/bold blue]")
         
         table = Table(title="Available Datasets")
         table.add_column("Dataset Type", style="cyan")
@@ -274,6 +323,7 @@ def data_info(data_dir):
             
     except Exception as e:
         console.print(f"[red]❌ Error getting data info: {e}[/red]")
+        logger.error(f"Data info error: {e}")
 
 @cli.command()
 @click.option('--model-dir', default='models', help='Directory containing models')
@@ -537,6 +587,9 @@ def use_version(version_id, model_dir):
             
     except Exception as e:
         console.print(f"[red]❌ Error switching version: {e}[/red]")
+
+# Add dataset setup commands to the main CLI
+cli.add_command(dataset_setup)
 
 if __name__ == '__main__':
     cli() 
