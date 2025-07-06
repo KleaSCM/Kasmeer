@@ -31,6 +31,17 @@ model_versioning.py
 | Weighted sampling or class balancing        | Especially useful in civil data where events are skewed (e.g., flood vs. normal) |
 
 
+
+
+A - Enhanced Data Analysis
+B - CLI Enhancements
+C - Documentation & Testing
+D - Performance Optimization
+
+
+
+
+
 neural_network.py
 
 BatchNorm or LayerNorm
