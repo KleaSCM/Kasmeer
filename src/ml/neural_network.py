@@ -75,260 +75,108 @@ class CivilEngineeringSystem:
         logger.info(f"Initialized CivilEngineeringSystem with model_dir={model_dir}, device={self.device}")
         
     @log_performance(logger)
-    def build_model(self, input_dim: int = 20, output_dim: int = 3) -> nn.Module:
+    def build_model(self, input_dim: int = 10, output_dim: int = 3) -> nn.Module:
         """Build neural network model - always use 20 features to match training"""
-        logger.info(f"Building model: input_dim=20 (fixed), output_dim={output_dim}")
+        logger.info(f"Building model: input_dim={input_dim}, output_dim={output_dim}")
         
-        # Always use 20 features to match the trained model
-        input_dim = 20
-        
+        # Use the provided input_dim
         model = CivilEngineeringNN(input_dim, output_dim)
         model = model.to(self.device)
         self.model = model
         return model
     
     def prepare_features(self, data_processor) -> Tuple[np.ndarray, np.ndarray]:
-        """Prepare features from all available datasets"""
-        logger.info("Preparing features from all available datasets")
-        
-        features = []
-        targets = []
-        
-        # Get all loaded datasets
-        loaded_data = data_processor.discover_and_load_all_data()
-        
-        if not loaded_data:
-            logger.warning("No datasets loaded")
-            return np.array([]), np.array([])
-        
-        # Process each dataset to extract features
-        for dataset_name, dataset in loaded_data.items():
-            if len(dataset) == 0:
-                continue
-                
-            logger.info(f"Processing {dataset_name} dataset with {len(dataset)} records")
-            
-            # Extract features from this dataset
-            dataset_features = self._extract_features_from_dataset(dataset, dataset_name)
-            
-            if dataset_features:
-                features.extend(dataset_features)
-                # Generate targets for each feature vector
-                for _ in dataset_features:
-                    target = self._generate_target_from_dataset(dataset_name, dataset)
-                    targets.append(target)
-        
-        if not features:
-            logger.warning("No valid features extracted from any dataset")
-            return np.array([]), np.array([])
-        
-        # Convert to numpy arrays
-        X = np.array(features)
-        y = np.array(targets)
-        
-        logger.info(f"Extracted {len(features)} feature vectors with {X.shape[1]} features each")
-        logger.info(f"Generated {len(targets)} target vectors with {y.shape[1]} targets each")
-        
-        return X, y
-    
-    def _extract_features_from_dataset(self, dataset: pd.DataFrame, dataset_name: str) -> List[np.ndarray]:
-        """Extract features from a specific dataset"""
-        features = []
+        """Prepare features for training with improved data quality filtering"""
+        logger.info("Preparing features with improved data quality filtering")
         
         try:
-            # Get coordinate columns
-            lat_col, lon_col = self._find_coordinate_columns(dataset)
+            # Load all data
+            all_data = data_processor.discover_and_load_all_data()
             
-            if lat_col and lon_col:
-                # Convert coordinates to numeric
-                lat_vals = pd.to_numeric(dataset[lat_col], errors='coerce')
-                lon_vals = pd.to_numeric(dataset[lon_col], errors='coerce')
-                
-                # Get valid coordinates
-                valid_mask = ~np.logical_or(pd.isna(lat_vals), pd.isna(lon_vals))
-                valid_data = dataset[valid_mask]
-                
-                if len(valid_data) == 0:
-                    return features
-                
-                # Sample up to 50 points to avoid too many features
-                sample_size = min(50, len(valid_data))
-                sample_data = valid_data.sample(n=sample_size, random_state=42)
-                
-                for _, row in sample_data.iterrows():
-                    feature_vector = self._create_feature_vector(row, dataset_name)
-                    if feature_vector is not None:
-                        features.append(feature_vector)
-            else:
-                # No coordinates, create features from the data itself
-                sample_size = min(20, len(dataset))
-                sample_data = dataset.sample(n=sample_size, random_state=42)
-                
-                for _, row in sample_data.iterrows():
-                    feature_vector = self._create_feature_vector(row, dataset_name)
-                    if feature_vector is not None:
-                        features.append(feature_vector)
+            # Filter for high-quality datasets with coordinates
+            high_quality_data = {}
+            for name, dataset in all_data.items():
+                if hasattr(dataset, 'columns'):
+                    # Check if dataset has coordinate columns
+                    coord_cols = self._find_coordinate_columns(dataset)
+                    if coord_cols['lat'] and coord_cols['lon']:
+                        # Check if coordinates are actually valid
+                        lat_col, lon_col = coord_cols['lat'], coord_cols['lon']
+                        try:
+                            lat_series = pd.to_numeric(dataset[lat_col], errors='coerce')
+                            lon_series = pd.to_numeric(dataset[lon_col], errors='coerce')
+                            if isinstance(lat_series, pd.Series) and isinstance(lon_series, pd.Series):
+                                valid_coords = (~lat_series.isna()) & (~lon_series.isna())
+                                if valid_coords.sum() > 0:
+                                    high_quality_data[name] = dataset[valid_coords]
+                                    logger.info(f"Added {name} with {valid_coords.sum()} valid coordinate records")
+                        except Exception as e:
+                            logger.warning(f"Error processing coordinates for {name}: {e}")
+            
+            if not high_quality_data:
+                logger.warning("No high-quality datasets with coordinates found")
+                return np.array([]), np.array([])
+            
+            logger.info(f"Processing {len(high_quality_data)} high-quality datasets")
+            
+            # Extract features from high-quality data only
+            features_list = []
+            labels_list = []
+            
+            for name, dataset in high_quality_data.items():
+                try:
+                    # Extract basic numeric features
+                    numeric_cols = dataset.select_dtypes(include=[np.number]).columns
+                    if len(numeric_cols) > 0:
+                        # Take sample of records to avoid memory issues
+                        sample_size = min(1000, len(dataset))
+                        sample_data = dataset.sample(n=sample_size, random_state=42)
                         
-        except Exception as e:
-            logger.warning(f"Error extracting features from {dataset_name}: {e}")
-        
-        return features
-    
-    def _create_feature_vector(self, row: pd.Series, dataset_name: str) -> Optional[np.ndarray]:
-        feature_vector = []
-        # Helper to safely convert to float
-        def safe_float(val):
-            try:
-                if val is None or (isinstance(val, (pd.Series, np.ndarray)) and val.size == 0):
-                    return 0.0
-                if isinstance(val, (pd.Series, np.ndarray)):
-                    val = val.item() if val.size == 1 else 0.0
-                return float(val) if pd.notna(val) else 0.0
-            except Exception:
-                return 0.0
-        # Numeric and categorical features
-        for col, value in row.items():
-            if isinstance(value, (pd.Series, np.ndarray)):
-                value = value.item() if hasattr(value, 'item') and value.size == 1 else None
-            if value is not None and pd.notna(value):
-                if pd.api.types.is_numeric_dtype(type(value)):
-                    feature_vector.append(safe_float(value))
-                elif isinstance(value, str):
-                    feature_vector.append(hash(value) % 1000)
-                else:
-                    feature_vector.append(0.0)
-            else:
-                feature_vector.append(0.0)
-        # Dataset-specific features
-        if dataset_name == 'construction':
-            feature_vector.extend([
-                safe_float(row.get('Construction Award', 0)),
-                1.0 if 'structural' in str(row.get('Project Description', '')).lower() else 0.0,
-                1.0 if 'electrical' in str(row.get('Project Description', '')).lower() else 0.0,
-                1.0 if 'plumbing' in str(row.get('Project Description', '')).lower() else 0.0,
-            ])
-        elif dataset_name == 'infrastructure':
-            feature_vector.extend([
-                safe_float(row.get('Home Broadband Adoption (Percentage of  Households)', 0)),
-                safe_float(row.get('Mobile Broadband Adoption (Percentage of Households)', 0)),
-                safe_float(row.get('Public Computer Center Count', 0)),
-                safe_float(row.get('Public Wi-Fi Count', 0)),
-                safe_float(row.get('Poles Reserved by Mobile Telecom Franchisee', 0)),
-            ])
-        elif dataset_name == 'climate':
-            feature_vector.extend([
-                safe_float(row.get('tempc', 0)),
-                safe_float(row.get('rh', 0)),
-                1.0 if row.get('ampm', '') == 'PM' else 0.0,
-                safe_float(row.get('month', 0)),
-                safe_float(row.get('quadrant', 0)),
-            ])
-        # Pad or trim to 20 features
-        while len(feature_vector) < 20:
-            feature_vector.append(0.0)
-        if len(feature_vector) > 20:
-            feature_vector = feature_vector[:20]
-        return np.array(feature_vector, dtype=np.float32)
-    
-    def _get_dataset_specific_features(self, row: pd.Series, dataset_name: str) -> List[float]:
-        # Helper to safely convert to float
-        def safe_float(val):
-            try:
-                if val is None or (isinstance(val, (pd.Series, np.ndarray)) and getattr(val, 'size', 1) == 0):
-                    return 0.0
-                if isinstance(val, (pd.Series, np.ndarray)):
-                    val = val.item() if getattr(val, 'size', 1) == 1 else 0.0
-                return float(val) if pd.notna(val) else 0.0
-            except Exception:
-                return 0.0
-        features = []
-        if dataset_name == 'construction':
-            features.extend([
-                safe_float(row.get('Construction Award', 0)),
-                1.0 if 'structural' in str(row.get('Project Description', '')).lower() else 0.0,
-                1.0 if 'electrical' in str(row.get('Project Description', '')).lower() else 0.0,
-                1.0 if 'plumbing' in str(row.get('Project Description', '')).lower() else 0.0,
-            ])
-        elif dataset_name == 'infrastructure':
-            features.extend([
-                safe_float(row.get('Home Broadband Adoption (Percentage of  Households)', 0)),
-                safe_float(row.get('Mobile Broadband Adoption (Percentage of Households)', 0)),
-                safe_float(row.get('Public Computer Center Count', 0)),
-                safe_float(row.get('Public Wi-Fi Count', 0)),
-                safe_float(row.get('Poles Reserved by Mobile Telecom Franchisee', 0)),
-            ])
-        elif dataset_name == 'climate':
-            features.extend([
-                safe_float(row.get('tempc', 0)),
-                safe_float(row.get('rh', 0)),
-                1.0 if row.get('ampm', '') == 'PM' else 0.0,
-                safe_float(row.get('month', 0)),
-                safe_float(row.get('quadrant', 0)),
-            ])
-        return features
-    
-    def _generate_target_from_dataset(self, dataset_name: str, dataset: pd.DataFrame) -> np.ndarray:
-        """Generate target values based on dataset type and characteristics"""
-        try:
-            # Base risk scores
-            environmental_risk = 0.3
-            infrastructure_risk = 0.3
-            construction_risk = 0.3
-            
-            # Adjust based on dataset type
-            if dataset_name == 'construction':
-                construction_risk = 0.7
-                # Check for high-value projects
-                if 'Construction Award' in dataset.columns:
-                    awards = pd.to_numeric(dataset['Construction Award'], errors='coerce')
-                    if isinstance(awards, pd.Series) and not awards.isna().all():
-                        avg_award = awards.mean()
-                        if avg_award > 1000000:  # $1M+
-                            construction_risk = 0.9
-                        elif avg_award > 100000:  # $100K+
-                            construction_risk = 0.6
+                        # Extract numeric features
+                        numeric_features = sample_data[numeric_cols].fillna(0).values
+                        
+                        # Create labels based on dataset type
+                        if 'construction' in name.lower():
+                            labels = np.ones(len(numeric_features))  # Construction = 1
+                        elif 'infrastructure' in name.lower():
+                            labels = np.ones(len(numeric_features)) * 0.8  # Infrastructure = 0.8
+                        else:
+                            labels = np.ones(len(numeric_features)) * 0.5  # Other = 0.5
+                        
+                        features_list.append(numeric_features)
+                        labels_list.append(labels)
+                        
+                        logger.info(f"Extracted {len(numeric_features)} features from {name}")
                 
-                # Check for safety-related projects
-                if 'Project Description' in dataset.columns:
-                    safety_keywords = ['safety', 'fire', 'emergency', 'structural']
-                    safety_count = sum(1 for desc in dataset['Project Description'].dropna() 
-                                     if any(keyword in str(desc).lower() for keyword in safety_keywords))
-                    if safety_count > 0:
-                        construction_risk = min(1.0, construction_risk + 0.2)
+                except Exception as e:
+                    logger.warning(f"Error extracting features from {name}: {e}")
             
-            elif dataset_name == 'infrastructure':
-                infrastructure_risk = 0.6
-                # Check for broadband adoption issues
-                if 'No Internet Access (Percentage of Households)' in dataset.columns:
-                    no_internet = pd.to_numeric(dataset['No Internet Access (Percentage of Households)'], errors='coerce')
-                    if isinstance(no_internet, pd.Series) and not no_internet.isna().all():
-                        avg_no_internet = no_internet.mean()
-                        if avg_no_internet > 20:  # High percentage without internet
-                            infrastructure_risk = 0.8
+            if not features_list:
+                logger.warning("No features extracted from any dataset")
+                return np.array([]), np.array([])
             
-            elif dataset_name == 'climate':
-                environmental_risk = 0.5
-                # Check for extreme temperatures
-                if 'tempc' in dataset.columns:
-                    temps = pd.to_numeric(dataset['tempc'], errors='coerce')
-                    if isinstance(temps, pd.Series) and not temps.isna().all():
-                        temp_range = temps.max() - temps.min()
-                        if temp_range > 30:  # High temperature variation
-                            environmental_risk = 0.7
+            # Combine all features
+            X = np.vstack(features_list)
+            y = np.concatenate(labels_list).reshape(-1, 1)  # Reshape to 2D for sklearn
             
-            # Normalize to 0-1 range
-            environmental_risk = min(1.0, max(0.0, environmental_risk))
-            infrastructure_risk = min(1.0, max(0.0, infrastructure_risk))
-            construction_risk = min(1.0, max(0.0, construction_risk))
+            # Normalize features to prevent training issues
+            from sklearn.preprocessing import StandardScaler
+            scaler = StandardScaler()
+            X_scaled = scaler.fit_transform(X)
             
-            return np.array([environmental_risk, infrastructure_risk, construction_risk])
+            # Save scaler for later use
+            import joblib
+            joblib.dump(scaler, os.path.join(self.model_dir, 'feature_scaler.joblib'))
+            
+            logger.info(f"Prepared {len(X_scaled)} training samples with {X_scaled.shape[1]} features")
+            return X_scaled, y
             
         except Exception as e:
-            logger.warning(f"Error generating target for {dataset_name}: {e}")
-            return np.array([0.5, 0.5, 0.5])  # Default moderate risk
+            logger.error(f"Error preparing features: {e}")
+            return np.array([]), np.array([])
     
-    def _find_coordinate_columns(self, dataset: pd.DataFrame) -> Tuple[Optional[str], Optional[str]]:
-        """Find latitude and longitude columns in a dataset"""
+    def _find_coordinate_columns(self, dataset: pd.DataFrame) -> Dict[str, Optional[str]]:
+        """Find coordinate columns in a dataset"""
         lat_col, lon_col = None, None
         
         for col in dataset.columns:
@@ -343,7 +191,7 @@ class CivilEngineeringSystem:
             elif lon_col is None and 'x' in col_lower:
                 lon_col = col
         
-        return lat_col, lon_col
+        return {'lat': lat_col, 'lon': lon_col}
     
     @log_performance(logger)
     def train(self, X: np.ndarray, y: np.ndarray, validation_split: float = 0.2, epochs: int = 100) -> Dict:
@@ -1970,4 +1818,18 @@ class CivilEngineeringSystem:
             # TODO: Include model performance metrics
             summary['model_architecture'] = str(self.model)
         
-        return summary 
+        return summary
+
+    def _create_feature_vector(self, features: dict, feature_type: str = 'generic') -> np.ndarray:
+        """
+        Convert features dictionary to a feature vector (numpy array) for model input.
+        Args:
+            features: Dictionary of features
+            feature_type: Type of feature vector (default: 'generic')
+        Returns:
+            Numpy array of feature values
+        """
+        # Sort keys for consistent order
+        keys = sorted(features.keys())
+        vector = np.array([features[k] for k in keys if isinstance(features[k], (int, float, np.integer, np.floating))])
+        return vector 

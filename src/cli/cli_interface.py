@@ -653,7 +653,15 @@ def analyze(location: str, data_dir: str, output: str):
         
         # Filter data for the specific location (within 1km)
         location_data = {}
+        climate_data = None
+        
         for dataset_name, dataset in loaded_data.items():
+            # Always include climate data regardless of coordinates
+            if dataset_name == 'climate':
+                climate_data = dataset
+                console.print(f"✅ {dataset_name}: {len(dataset):,} records (climate data - always included)")
+                continue
+                
             lat_col, lon_col = find_coordinate_columns(dataset)
             if lat_col and lon_col:
                 try:
@@ -678,6 +686,10 @@ def analyze(location: str, data_dir: str, output: str):
                     console.print(f"❌ {dataset_name}: Error filtering data - {e}")
             else:
                 console.print(f"⚠️ {dataset_name}: No coordinate data")
+        
+        # Add climate data to location_data if available
+        if climate_data is not None:
+            location_data['climate'] = climate_data
         
         if not location_data:
             console.print("[red]❌ No data found near the specified location[/red]")
@@ -820,6 +832,46 @@ def analyze(location: str, data_dir: str, output: str):
                                 console.print(f"    - {col}: {soil_type} ({count} records, {percentage:.1f}%)")
                         else:
                             console.print(f"    - {col}: {soil_data}")
+                
+                # Display climate data if available
+                if env_context.get('climate_data'):
+                    climate = env_context['climate_data']
+                    console.print(f"  • Climate Data:")
+                    
+                    # Show temperature stats
+                    temp_stats_key = None
+                    for key in climate.keys():
+                        if 'temp' in key.lower() and 'stats' in key:
+                            temp_stats_key = key
+                            break
+                    
+                    if temp_stats_key and climate[temp_stats_key]:
+                        temp_stats = climate[temp_stats_key]
+                        console.print(f"    - Temperature: {temp_stats.get('mean', 'N/A'):.1f}°C (range: {temp_stats.get('min', 'N/A'):.1f}°C - {temp_stats.get('max', 'N/A'):.1f}°C)")
+                    
+                    # Show humidity stats
+                    hum_stats_key = None
+                    for key in climate.keys():
+                        if ('rh' in key.lower() or 'humidity' in key.lower()) and 'stats' in key:
+                            hum_stats_key = key
+                            break
+                    
+                    if hum_stats_key and climate[hum_stats_key]:
+                        hum_stats = climate[hum_stats_key]
+                        console.print(f"    - Humidity: {hum_stats.get('mean', 'N/A'):.1f}% (range: {hum_stats.get('min', 'N/A'):.1f}% - {hum_stats.get('max', 'N/A'):.1f}%)")
+                    
+                    # Show monthly averages
+                    if climate.get('monthly_averages'):
+                        monthly_data = climate['monthly_averages']
+                        console.print(f"    - Monthly Averages: Available for {len(monthly_data)} parameters")
+                        
+                        # Show sample monthly data for temperature
+                        for param, monthly_vals in monthly_data.items():
+                            if 'temp' in param.lower() and len(monthly_vals) > 0:
+                                sample_months = list(monthly_vals.keys())[:3]  # Show first 3 months
+                                sample_values = [f"{month}: {val:.1f}°C" for month, val in [(k, monthly_vals[k]) for k in sample_months]]
+                                console.print(f"      {param}: {', '.join(sample_values)}...")
+                                break
                 
                 # Display other environmental data
                 if env_context.get('summary'):

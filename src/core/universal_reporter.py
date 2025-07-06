@@ -105,6 +105,9 @@ class UniversalReporter:
         # Get content intelligence for smart analysis routing
         content_intelligence = self._get_content_intelligence(dataset, dataset_type)
         
+        # Always analyze climate data if present
+        climate_context = self._extract_climate_context(dataset)
+        
         # Initialize comprehensive analysis using modular analyzers with content-aware routing
         briefing = {
             'executive_summary': self._generate_executive_summary(dataset, location, content_intelligence),
@@ -112,7 +115,7 @@ class UniversalReporter:
             'site_materials': self._analyze_with_content_awareness(dataset, 'construction', lambda d: self.construction_analyzer.analyze(d)['site_materials']),
             'work_history': self._analyze_with_content_awareness(dataset, 'construction', lambda d: self.construction_analyzer.analyze(d)['work_history']),
             'utilities_infrastructure': self._analyze_with_content_awareness(dataset, 'infrastructure', lambda d: self.infrastructure_analyzer.analyze(d)['utilities_infrastructure']),
-            'environmental_context': self._analyze_with_content_awareness(dataset, 'environmental', lambda d: self.environmental_analyzer.analyze(d)['environmental_context']),
+            'environmental_context': self._merge_environmental_and_climate(dataset, climate_context),
             'costs_funding': self._analyze_with_content_awareness(dataset, 'financial', lambda d: self.financial_analyzer.analyze(d)['costs_funding']),
             'risks_hazards': self._analyze_risks_hazards(dataset, content_intelligence),
             'missing_data': self._identify_missing_data(dataset, content_intelligence),
@@ -124,7 +127,7 @@ class UniversalReporter:
             'cross_dataset_analysis': self._get_cross_dataset_analysis(dataset, location, content_intelligence)
         }
         
-        logger.info("Civil Engineer's Site Briefing completed with content intelligence")
+        logger.info("Civil Engineer's Site Briefing completed with content intelligence and climate data")
         return briefing
     
     def _get_content_intelligence(self, dataset: pd.DataFrame, dataset_type: Optional[str] = None) -> Dict[str, Any]:
@@ -1220,7 +1223,7 @@ class UniversalReporter:
                 'action': 'Material assessment',
                 'description': 'Review and assess material conditions'
             })
-        return actions 
+        return actions
     
     def _analyze_risks_hazards(self, dataset: pd.DataFrame, content_intelligence: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Analyze risks and hazards at the site (modular fallback for RiskAnalyzer)"""
@@ -1383,3 +1386,31 @@ class UniversalReporter:
                 'summary': ['Cross-dataset analysis unavailable'],
                 'error': str(e)
             }
+
+    def _extract_climate_context(self, dataset: pd.DataFrame) -> dict:
+        """Extract climate data context if present in the dataset"""
+        try:
+            from .analyzers.environmental_analyzer import EnvironmentalAnalyzer
+            analyzer = EnvironmentalAnalyzer()
+            result = analyzer.analyze(dataset)
+            return result.get('environmental_context', {})
+        except Exception as e:
+            logger.warning(f"Climate context extraction failed: {e}")
+            return {}
+
+    def _merge_environmental_and_climate(self, dataset: pd.DataFrame, climate_context: dict) -> dict:
+        """Merge environmental context with climate data, ensuring climate is always present if available"""
+        # Use the normal environmental analyzer
+        try:
+            env_context = self.environmental_analyzer.analyze(dataset)['environmental_context']
+        except Exception as e:
+            logger.warning(f"Environmental context extraction failed: {e}")
+            env_context = {}
+        # Merge climate data
+        if climate_context and 'climate_data' in climate_context:
+            env_context['climate_data'] = climate_context['climate_data']
+            if 'summary' in climate_context:
+                if 'summary' not in env_context:
+                    env_context['summary'] = []
+                env_context['summary'].extend([s for s in climate_context['summary'] if s not in env_context['summary']])
+        return env_context
