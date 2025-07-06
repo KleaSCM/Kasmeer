@@ -175,8 +175,105 @@ class UniversalReporter:
             'infrastructure_materials': {},
             'soil_materials': {},
             'construction_materials': {},
-            'summary': []
+            'equipment_systems': {},
+            'summary': [],
+            'material_details': []
         }
+        
+        # NEW: Extract detailed material information from NYC construction projects
+        if 'Project Description' in dataset.columns:
+            for idx, row in dataset.iterrows():
+                project_desc = row.get('Project Description', '')
+                project_type = row.get('Project type', '')
+                construction_award = row.get('Construction Award', 0)
+                
+                material_detail = {
+                    'project': project_desc,
+                    'school': row.get('School Name', ''),
+                    'project_type': project_type,
+                    'estimated_cost': f"${construction_award:,.0f}" if pd.notna(construction_award) else 'Unknown',
+                    'materials_required': [],
+                    'equipment_systems': [],
+                    'address': row.get('Building Address', ''),
+                    'borough': row.get('Borough', '')
+                }
+                
+                # Analyze project description for materials and equipment
+                desc_lower = project_desc.lower()
+                
+                # HVAC and Climate Control Systems
+                if 'climate control' in desc_lower or 'boiler' in desc_lower:
+                    material_detail['equipment_systems'].extend([
+                        'HVAC Systems',
+                        'Boiler Systems', 
+                        'Climate Control Equipment',
+                        'Thermal Management Systems'
+                    ])
+                    material_detail['materials_required'].extend([
+                        'HVAC Ductwork',
+                        'Boiler Components',
+                        'Thermostats and Controls',
+                        'Insulation Materials'
+                    ])
+                
+                # Fire Safety Systems
+                if 'fire alarm' in desc_lower or 'fire' in desc_lower:
+                    material_detail['equipment_systems'].extend([
+                        'Fire Alarm Systems',
+                        'Smoke Detectors',
+                        'Emergency Lighting',
+                        'Fire Suppression Equipment'
+                    ])
+                    material_detail['materials_required'].extend([
+                        'Fire Alarm Panels',
+                        'Smoke Detectors',
+                        'Emergency Exit Signs',
+                        'Fire-Rated Materials'
+                    ])
+                
+                # Structural Systems
+                if 'structural' in desc_lower or 'defect' in desc_lower:
+                    material_detail['equipment_systems'].extend([
+                        'Structural Reinforcement',
+                        'Foundation Systems',
+                        'Load-Bearing Components'
+                    ])
+                    material_detail['materials_required'].extend([
+                        'Steel Beams',
+                        'Concrete',
+                        'Reinforcement Bars',
+                        'Structural Fasteners'
+                    ])
+                
+                # Electrical Systems
+                if 'electrical' in desc_lower or 'wiring' in desc_lower:
+                    material_detail['equipment_systems'].extend([
+                        'Electrical Systems',
+                        'Power Distribution',
+                        'Lighting Systems'
+                    ])
+                    material_detail['materials_required'].extend([
+                        'Electrical Panels',
+                        'Wiring and Conduit',
+                        'Lighting Fixtures',
+                        'Electrical Outlets'
+                    ])
+                
+                # Plumbing Systems
+                if 'plumbing' in desc_lower or 'water' in desc_lower:
+                    material_detail['equipment_systems'].extend([
+                        'Plumbing Systems',
+                        'Water Distribution',
+                        'Drainage Systems'
+                    ])
+                    material_detail['materials_required'].extend([
+                        'Pipes and Fittings',
+                        'Valves and Controls',
+                        'Water Heaters',
+                        'Drainage Components'
+                    ])
+                
+                materials['material_details'].append(material_detail)
         
         # Dynamic material discovery
         material_patterns = ['material', 'type', 'composition', 'grade', 'class', 'steel', 'concrete', 'wood', 'plastic', 'metal']
@@ -200,6 +297,28 @@ class UniversalReporter:
         construction_cols = self._find_columns_by_patterns(dataset, construction_patterns)
         if construction_cols:
             materials['summary'].append(f"Construction projects: {len(construction_cols)} relevant data columns")
+        
+        # Add summary of material types found
+        if materials['material_details']:
+            total_projects = len(materials['material_details'])
+            total_cost = sum([float(detail['estimated_cost'].replace('$', '').replace(',', '')) 
+                            for detail in materials['material_details'] 
+                            if detail['estimated_cost'] != 'Unknown'])
+            
+            materials['summary'].append(f"Total projects analyzed: {total_projects}")
+            materials['summary'].append(f"Total material/equipment value: ${total_cost:,.0f}")
+            
+            # Count equipment types
+            all_equipment = []
+            for detail in materials['material_details']:
+                all_equipment.extend(detail['equipment_systems'])
+            
+            equipment_counts = {}
+            for equipment in all_equipment:
+                equipment_counts[equipment] = equipment_counts.get(equipment, 0) + 1
+            
+            if equipment_counts:
+                materials['summary'].append(f"Equipment systems: {', '.join([f'{eq} ({count})' for eq, count in equipment_counts.items()])}")
         
         return materials
     
@@ -619,8 +738,133 @@ class UniversalReporter:
             'chemical_hazards': {},
             'compliance_risks': {},
             'operational_risks': {},
-            'summary': []
+            'financial_risks': {},
+            'timeline_risks': {},
+            'summary': [],
+            'risk_details': []
         }
+        
+        # NEW: Comprehensive risk analysis for NYC construction projects
+        if 'Project Description' in dataset.columns:
+            for idx, row in dataset.iterrows():
+                project_desc = row.get('Project Description', '')
+                project_type = row.get('Project type', '')
+                construction_award = row.get('Construction Award', 0)
+                school_name = row.get('School Name', '')
+                
+                risk_detail = {
+                    'project': project_desc,
+                    'school': school_name,
+                    'project_type': project_type,
+                    'estimated_cost': f"${construction_award:,.0f}" if pd.notna(construction_award) else 'Unknown',
+                    'risk_level': 'Medium',
+                    'structural_risks': [],
+                    'environmental_risks': [],
+                    'fire_hazards': [],
+                    'compliance_risks': [],
+                    'operational_risks': [],
+                    'financial_risks': [],
+                    'recommendations': []
+                }
+                
+                desc_lower = project_desc.lower()
+                
+                # Structural Risk Assessment
+                if 'structural' in desc_lower or 'defect' in desc_lower:
+                    risk_detail['structural_risks'].extend([
+                        'Structural integrity concerns',
+                        'Load-bearing capacity issues',
+                        'Foundation stability risks',
+                        'Building code compliance issues'
+                    ])
+                    risk_detail['risk_level'] = 'High'
+                    risk_detail['recommendations'].extend([
+                        'Conduct structural engineering assessment',
+                        'Review building codes and regulations',
+                        'Implement structural monitoring systems',
+                        'Plan for potential structural reinforcements'
+                    ])
+                
+                # Fire Safety Risk Assessment
+                if 'fire alarm' in desc_lower or 'fire' in desc_lower:
+                    risk_detail['fire_hazards'].extend([
+                        'Fire safety system failures',
+                        'Emergency evacuation concerns',
+                        'Fire suppression system inadequacies',
+                        'Code compliance issues'
+                    ])
+                    risk_detail['risk_level'] = 'High'
+                    risk_detail['recommendations'].extend([
+                        'Verify fire safety code compliance',
+                        'Test emergency systems thoroughly',
+                        'Update evacuation plans',
+                        'Coordinate with fire department'
+                    ])
+                
+                # HVAC and Climate Control Risks
+                if 'climate control' in desc_lower or 'boiler' in desc_lower:
+                    risk_detail['operational_risks'].extend([
+                        'HVAC system failures',
+                        'Energy efficiency concerns',
+                        'Thermal comfort issues',
+                        'Equipment reliability risks'
+                    ])
+                    risk_detail['environmental_risks'].extend([
+                        'Energy consumption impacts',
+                        'Carbon footprint concerns',
+                        'Indoor air quality issues'
+                    ])
+                    risk_detail['recommendations'].extend([
+                        'Assess energy efficiency requirements',
+                        'Plan for system redundancy',
+                        'Consider environmental impact',
+                        'Implement monitoring systems'
+                    ])
+                
+                # Financial Risk Assessment
+                if pd.notna(construction_award) and construction_award > 5000000:  # $5M+
+                    risk_detail['financial_risks'].extend([
+                        'High-value project financial exposure',
+                        'Budget overrun risks',
+                        'Funding availability concerns',
+                        'Cost escalation risks'
+                    ])
+                    risk_detail['recommendations'].extend([
+                        'Implement strict budget controls',
+                        'Monitor cost escalation factors',
+                        'Plan for funding contingencies',
+                        'Regular financial reporting'
+                    ])
+                
+                # Compliance Risk Assessment
+                risk_detail['compliance_risks'].extend([
+                    'NYC building code compliance',
+                    'School safety regulations',
+                    'Environmental regulations',
+                    'ADA accessibility requirements'
+                ])
+                risk_detail['recommendations'].extend([
+                    'Review all applicable regulations',
+                    'Coordinate with NYC DOB',
+                    'Ensure ADA compliance',
+                    'Obtain all required permits'
+                ])
+                
+                # Operational Risk Assessment
+                risk_detail['operational_risks'].extend([
+                    'School disruption during construction',
+                    'Coordination with multiple stakeholders',
+                    'Timeline delays and scheduling conflicts',
+                    'Quality control and inspection requirements'
+                ])
+                risk_detail['recommendations'].extend([
+                    'Develop detailed construction schedule',
+                    'Coordinate with school administration',
+                    'Plan for minimal disruption',
+                    'Implement quality assurance program'
+                ])
+                
+                risks['risk_details'].append(risk_detail)
         
         # Dynamic risk discovery
         structural_patterns = ['crack', 'corrosion', 'deterioration', 'failure', 'collapse', 'structural']
@@ -677,6 +921,30 @@ class UniversalReporter:
                     risks['summary'].append(f"Chemical hazards: {len(chemical_data)} different substances found")
                 except Exception as e:
                     logger.warning(f"Chemical hazard analysis failed for column {col}: {e}")
+        
+        # Add comprehensive risk summary
+        if risks['risk_details']:
+            high_risk_projects = [r for r in risks['risk_details'] if r['risk_level'] == 'High']
+            medium_risk_projects = [r for r in risks['risk_details'] if r['risk_level'] == 'Medium']
+            
+            risks['summary'].append(f"Risk Assessment: {len(high_risk_projects)} high-risk, {len(medium_risk_projects)} medium-risk projects")
+            
+            # Count risk types
+            all_structural_risks = []
+            all_fire_risks = []
+            all_financial_risks = []
+            
+            for risk in risks['risk_details']:
+                all_structural_risks.extend(risk['structural_risks'])
+                all_fire_risks.extend(risk['fire_hazards'])
+                all_financial_risks.extend(risk['financial_risks'])
+            
+            if all_structural_risks:
+                risks['summary'].append(f"Structural risks identified: {len(set(all_structural_risks))} unique issues")
+            if all_fire_risks:
+                risks['summary'].append(f"Fire safety risks identified: {len(set(all_fire_risks))} unique issues")
+            if all_financial_risks:
+                risks['summary'].append(f"Financial risks identified: {len(set(all_financial_risks))} unique issues")
         
         return risks
     
@@ -993,10 +1261,10 @@ class UniversalReporter:
         if coord_cols['lat'] and coord_cols['lon']:
             lat_col, lon_col = coord_cols['lat'], coord_cols['lon']
             try:
-                # Convert to numeric, ignoring errors
+            # Convert to numeric, ignoring errors
                 lat_numeric = pd.to_numeric(dataset[lat_col], errors='coerce')  # type: ignore
                 lon_numeric = pd.to_numeric(dataset[lon_col], errors='coerce')  # type: ignore
-                # Only calculate bounds if we have valid numeric data
+            # Only calculate bounds if we have valid numeric data
                 if not lat_numeric.isna().all() and not lon_numeric.isna().all():  # type: ignore
                     overview['geographic_bounds'] = {
                         'lat_min': float(lat_numeric.min()),  # type: ignore
@@ -1245,10 +1513,10 @@ class UniversalReporter:
         if len(numeric_cols) > 1:
             try:
                 corr_matrix = dataset[numeric_cols].corr()  # type: ignore
-                correlations['numeric_correlations'] = {
-                    'matrix': corr_matrix.to_dict(),
-                    'strong_correlations': self._find_strong_correlations(corr_matrix)
-                }
+            correlations['numeric_correlations'] = {
+                'matrix': corr_matrix.to_dict(),
+                'strong_correlations': self._find_strong_correlations(corr_matrix)
+            }
             except Exception as e:
                 logger.warning(f"Correlation analysis failed: {e}")
                 correlations['numeric_correlations'] = {'error': str(e)}
@@ -1268,16 +1536,16 @@ class UniversalReporter:
         numeric_cols = dataset.select_dtypes(include=[np.number]).columns
         for col in numeric_cols:
             try:
-                Q1 = dataset[col].quantile(0.25)
-                Q3 = dataset[col].quantile(0.75)
-                IQR = Q3 - Q1
-                outliers = dataset[(dataset[col] < Q1 - 1.5 * IQR) | (dataset[col] > Q3 + 1.5 * IQR)]
-                if len(outliers) > 0:
-                    anomalies['outliers'][col] = {
-                        'count': len(outliers),
-                        'percentage': (len(outliers) / len(dataset)) * 100,
-                        'values': outliers[col].tolist()
-                    }
+            Q1 = dataset[col].quantile(0.25)
+            Q3 = dataset[col].quantile(0.75)
+            IQR = Q3 - Q1
+            outliers = dataset[(dataset[col] < Q1 - 1.5 * IQR) | (dataset[col] > Q3 + 1.5 * IQR)]
+            if len(outliers) > 0:
+                anomalies['outliers'][col] = {
+                    'count': len(outliers),
+                    'percentage': (len(outliers) / len(dataset)) * 100,
+                    'values': outliers[col].tolist()
+                }
             except Exception as e:
                 logger.warning(f"Outlier detection failed for column {col}: {e}")
         
@@ -1348,7 +1616,7 @@ class UniversalReporter:
             if any(pattern in col_lower for pattern in ['latitude', 'lat']):
                 # Avoid false matches like "lat" in "Tabulation"
                 if not any(false_match in col_lower for false_match in ['tabulation', 'calculation', 'relation']):
-                    lat_col = col
+                lat_col = col
             # Check for longitude patterns - be more precise
             elif any(pattern in col_lower for pattern in ['longitude', 'lon', 'lng']):
                 lon_col = col
@@ -1407,7 +1675,7 @@ class UniversalReporter:
                     # Convert to numeric and get actual statistics
                     numeric_data = pd.to_numeric(dataset[col], errors='coerce')
                     if not numeric_data.isna().all():
-                        dimensions[col] = {
+                dimensions[col] = {
                             'min': float(numeric_data.min()),
                             'max': float(numeric_data.max()),
                             'mean': float(numeric_data.mean()),
@@ -1492,7 +1760,7 @@ class UniversalReporter:
         for col in cost_cols:
             if col in dataset.columns and dataset[col].dtype in ['int64', 'float64']:
                 try:
-                    costs[col] = {
+                costs[col] = {
                         'total': float(dataset[col].sum()),
                         'mean': float(dataset[col].mean()),
                         'min': float(dataset[col].min()),
@@ -1529,19 +1797,19 @@ class UniversalReporter:
             return {'coordinate_count': 0}
         
         try:
-            # Convert to numeric, ignoring errors
+        # Convert to numeric, ignoring errors
             lat_numeric = pd.to_numeric(dataset[lat_col], errors='coerce')  # type: ignore
             lon_numeric = pd.to_numeric(dataset[lon_col], errors='coerce')  # type: ignore
-            
-            return {
-                'coordinate_range': {
+        
+        return {
+            'coordinate_range': {
                     'lat_min': float(lat_numeric.min()),  # type: ignore
                     'lat_max': float(lat_numeric.max()),  # type: ignore
                     'lon_min': float(lon_numeric.min()),  # type: ignore
                     'lon_max': float(lon_numeric.max())   # type: ignore
-                },
-                'coordinate_count': len(dataset)
-            }
+            },
+            'coordinate_count': len(dataset)
+        }
         except Exception as e:
             logger.warning(f"Coordinate analysis failed: {e}")
             return {'coordinate_count': 0, 'error': str(e)}
@@ -1553,16 +1821,16 @@ class UniversalReporter:
             return {'error': 'No coordinate columns found'}
         
         try:
-            distances = np.sqrt(
-                (dataset[lat_col] - location['lat'])**2 + 
-                (dataset[lon_col] - location['lon'])**2
-            )
-            return {
-                'nearest_distance': float(distances.min()),
-                'average_distance': float(distances.mean()),
-                'within_1km': len(distances[distances <= 0.01]),
-                'within_5km': len(distances[distances <= 0.05])
-            }
+        distances = np.sqrt(
+            (dataset[lat_col] - location['lat'])**2 + 
+            (dataset[lon_col] - location['lon'])**2
+        )
+        return {
+            'nearest_distance': float(distances.min()),
+            'average_distance': float(distances.mean()),
+            'within_1km': len(distances[distances <= 0.01]),
+            'within_5km': len(distances[distances <= 0.05])
+        }
         except Exception as e:
             logger.warning(f"Proximity analysis failed: {e}")
             return {'error': str(e)}
@@ -1572,12 +1840,12 @@ class UniversalReporter:
         time_analysis = {}
         for col in date_cols:
             try:
-                time_analysis[col] = {
-                    'earliest': dataset[col].min(),
-                    'latest': dataset[col].max(),
-                    'duration_days': (dataset[col].max() - dataset[col].min()).days,
-                    'record_count': len(dataset)
-                }
+            time_analysis[col] = {
+                'earliest': dataset[col].min(),
+                'latest': dataset[col].max(),
+                'duration_days': (dataset[col].max() - dataset[col].min()).days,
+                'record_count': len(dataset)
+            }
             except Exception as e:
                 logger.warning(f"Time series analysis failed for column {col}: {e}")
                 time_analysis[col] = {'error': str(e)}
@@ -1587,15 +1855,15 @@ class UniversalReporter:
         """Find strong correlations in correlation matrix"""
         strong_correlations = []
         try:
-            for i in range(len(corr_matrix.columns)):
-                for j in range(i+1, len(corr_matrix.columns)):
-                    corr_value = corr_matrix.iloc[i, j]
-                    if abs(corr_value) >= threshold:
-                        strong_correlations.append({
-                            'variable1': corr_matrix.columns[i],
-                            'variable2': corr_matrix.columns[j],
+        for i in range(len(corr_matrix.columns)):
+            for j in range(i+1, len(corr_matrix.columns)):
+                corr_value = corr_matrix.iloc[i, j]
+                if abs(corr_value) >= threshold:
+                    strong_correlations.append({
+                        'variable1': corr_matrix.columns[i],
+                        'variable2': corr_matrix.columns[j],
                             'correlation': float(corr_value)
-                        })
+                    })
         except Exception as e:
             logger.warning(f"Strong correlation analysis failed: {e}")
         return strong_correlations

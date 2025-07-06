@@ -717,6 +717,20 @@ def analyze(location: str, data_dir: str, output: str):
                 console.print(f"\n[bold yellow]🏗️ SITE MATERIALS[/bold yellow]")
                 for material in briefing['site_materials']['summary']:
                     console.print(f"  • {material}")
+                
+                # Show detailed material breakdown
+                if briefing['site_materials'].get('material_details'):
+                    console.print(f"\n[bold]🔧 MATERIAL & EQUIPMENT DETAILS:[/bold]")
+                    for i, material_detail in enumerate(briefing['site_materials']['material_details'][:3], 1):
+                        console.print(f"  {i}. {material_detail['project']}")
+                        console.print(f"     School: {material_detail['school']}")
+                        console.print(f"     Cost: {material_detail['estimated_cost']}")
+                        console.print(f"     Address: {material_detail['address']}")
+                        if material_detail['equipment_systems']:
+                            console.print(f"     Equipment: {', '.join(material_detail['equipment_systems'][:3])}")
+                        if material_detail['materials_required']:
+                            console.print(f"     Materials: {', '.join(material_detail['materials_required'][:3])}")
+                        console.print()
             
             # Work History
             if 'work_history' in briefing and briefing['work_history'].get('summary'):
@@ -742,6 +756,32 @@ def analyze(location: str, data_dir: str, output: str):
                             console.print(f"     Advertise Date: {project['advertise_date']}")
                         if 'status' in project:
                             console.print(f"     Status: {project['status']}")
+                        console.print()
+            
+            # Risks & Hazards
+            if 'risks_hazards' in briefing and briefing['risks_hazards'].get('summary'):
+                console.print(f"\n[bold yellow]⚠️ RISKS & HAZARDS[/bold yellow]")
+                for risk in briefing['risks_hazards']['summary']:
+                    console.print(f"  • {risk}")
+                
+                # Show detailed risk breakdown
+                if briefing['risks_hazards'].get('risk_details'):
+                    console.print(f"\n[bold]🚨 DETAILED RISK ASSESSMENT:[/bold]")
+                    for i, risk_detail in enumerate(briefing['risks_hazards']['risk_details'][:3], 1):
+                        console.print(f"  {i}. {risk_detail['project']}")
+                        console.print(f"     School: {risk_detail['school']}")
+                        console.print(f"     Risk Level: {risk_detail['risk_level']}")
+                        console.print(f"     Cost: {risk_detail['estimated_cost']}")
+                        
+                        if risk_detail['structural_risks']:
+                            console.print(f"     Structural Risks: {', '.join(risk_detail['structural_risks'][:2])}")
+                        if risk_detail['fire_hazards']:
+                            console.print(f"     Fire Hazards: {', '.join(risk_detail['fire_hazards'][:2])}")
+                        if risk_detail['financial_risks']:
+                            console.print(f"     Financial Risks: {', '.join(risk_detail['financial_risks'][:2])}")
+                        
+                        if risk_detail['recommendations']:
+                            console.print(f"     Key Recommendations: {', '.join(risk_detail['recommendations'][:2])}")
                         console.print()
             
             # Utilities & Infrastructure
@@ -770,12 +810,6 @@ def analyze(location: str, data_dir: str, output: str):
                         console.print(f"     Value: {cost_detail['estimated_value']}")
                         console.print(f"     Campus: {cost_detail['campus']}")
                         console.print()
-            
-            # Risks & Hazards
-            if 'risks_hazards' in briefing and briefing['risks_hazards'].get('summary'):
-                console.print(f"\n[bold yellow]⚠️ RISKS & HAZARDS[/bold yellow]")
-                for risk in briefing['risks_hazards']['summary']:
-                    console.print(f"  • {risk}")
             
             # Missing Data
             if 'missing_data' in briefing:
