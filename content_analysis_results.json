@@ -1,0 +1,1249 @@
+{
+  "content_analysis": {
+    "buildings": {
+      "content_analysis": {
+        "content_type": "construction",
+        "confidence_scores": {
+          "traffic": 0.07692307692307693,
+          "weather": 0.15384615384615385,
+          "construction": 0.38461538461538464,
+          "infrastructure": 0.24,
+          "environmental": 0.17391304347826086,
+          "transportation": 0.0,
+          "safety": 0.30434782608695654,
+          "financial": 0.16
+        },
+        "key_indicators": {
+          "traffic": [
+            "Value in Description: road",
+            "Value in Description: street",
+            "Value in Scope: road",
+            "Value in Scope: street"
+          ],
+          "weather": [
+            "Value in Scope: forecast"
+          ],
+          "infrastructure": [
+            "Value in Scope: valve",
+            "Value in Scope: transformer"
+          ]
+        },
+        "data_characteristics": {
+          "total_records": 310,
+          "total_columns": 9,
+          "numeric_columns": 0,
+          "categorical_columns": 9,
+          "date_columns": 0,
+          "missing_data_percentage": 0.0,
+          "has_coordinates": false,
+          "has_temporal_data": false,
+          "data_completeness": 100.0
+        },
+        "suggested_tags": [
+          "construction",
+          "small_dataset",
+          "high_quality"
+        ],
+        "content_summary": "This appears to be construction data with 310 records and 9 columns. Data completeness is 100.0%.",
+        "cross_references": [
+          "Contains ID columns: Project ID - may link to related datasets"
+        ]
+      },
+      "tagging": {
+        "tags": [
+          "construction",
+          "financial",
+          "geospatial",
+          "high_quality",
+          "safety",
+          "small_dataset"
+        ],
+        "content_analysis": {
+          "content_type": "construction",
+          "confidence_scores": {
+            "traffic": 0.07692307692307693,
+            "weather": 0.15384615384615385,
+            "construction": 0.38461538461538464,
+            "infrastructure": 0.24,
+            "environmental": 0.17391304347826086,
+            "transportation": 0.0,
+            "safety": 0.30434782608695654,
+            "financial": 0.16
+          },
+          "key_indicators": {
+            "traffic": [
+              "Value in Description: road",
+              "Value in Description: street",
+              "Value in Scope: road",
+              "Value in Scope: street"
+            ],
+            "weather": [
+              "Value in Scope: forecast"
+            ],
+            "infrastructure": [
+              "Value in Scope: valve",
+              "Value in Scope: transformer"
+            ]
+          },
+          "data_characteristics": {
+            "total_records": 310,
+            "total_columns": 9,
+            "numeric_columns": 0,
+            "categorical_columns": 9,
+            "date_columns": 0,
+            "missing_data_percentage": 0.0,
+            "has_coordinates": false,
+            "has_temporal_data": false,
+            "data_completeness": 100.0
+          },
+          "suggested_tags": [
+            "construction",
+            "small_dataset",
+            "high_quality"
+          ],
+          "content_summary": "This appears to be construction data with 310 records and 9 columns. Data completeness is 100.0%.",
+          "cross_references": [
+            "Contains ID columns: Project ID - may link to related datasets"
+          ]
+        },
+        "tagging_summary": "Dataset tagged as construction with 6 tags: construction, financial, geospatial, high_quality, safety, small_dataset\nContains 310 records with 9 columns\nData completeness: 100.0%",
+        "confidence": 0.38461538461538464,
+        "suggestions": [
+          "Low confidence in tagging - consider manual review"
+        ]
+      },
+      "summary": {
+        "content_type": "construction",
+        "confidence": 0.38461538461538464,
+        "tags": [
+          "construction",
+          "financial",
+          "geospatial",
+          "high_quality",
+          "safety",
+          "small_dataset"
+        ],
+        "records": 310,
+        "columns": 9
+      }
+    },
+    "infrastructure": {
+      "content_analysis": {
+        "content_type": "transportation",
+        "confidence_scores": {
+          "traffic": 0.0,
+          "weather": 0.07692307692307693,
+          "construction": 0.07692307692307693,
+          "infrastructure": 0.0,
+          "environmental": 0.0,
+          "transportation": 0.16,
+          "safety": 0.0,
+          "financial": 0.0
+        },
+        "key_indicators": {
+          "traffic": [
+            "Column: Home Broadband Adoption (Percentage of  Households)",
+            "Column: Mobile Broadband Adoption (Percentage of Households)",
+            "Column: No Home Broadband Adoption (Percentage of  Households)",
+            "Column: No Mobile Broadband Adoption (Percentage of Households)",
+            "Column: No Home Broadband Adoption by Quartile",
+            "Column: No Mobile Broadband Adoption by Quartile"
+          ]
+        },
+        "data_characteristics": {
+          "total_records": 248,
+          "total_columns": 17,
+          "numeric_columns": 15,
+          "categorical_columns": 2,
+          "date_columns": 0,
+          "missing_data_percentage": 0.0,
+          "has_coordinates": true,
+          "has_temporal_data": false,
+          "data_completeness": 100.0
+        },
+        "suggested_tags": [
+          "transportation",
+          "geospatial",
+          "small_dataset",
+          "high_quality"
+        ],
+        "content_summary": "This appears to be transportation data with 248 records and 17 columns. The dataset contains geographic coordinates. Data completeness is 100.0%.",
+        "cross_references": [
+          "Contains ID columns: OID - may link to related datasets",
+          "Contains coordinates - can be spatially joined with other geospatial datasets"
+        ]
+      },
+      "tagging": {
+        "tags": [
+          "geospatial",
+          "high_quality",
+          "small_dataset",
+          "transportation"
+        ],
+        "content_analysis": {
+          "content_type": "transportation",
+          "confidence_scores": {
+            "traffic": 0.0,
+            "weather": 0.07692307692307693,
+            "construction": 0.07692307692307693,
+            "infrastructure": 0.0,
+            "environmental": 0.0,
+            "transportation": 0.16,
+            "safety": 0.0,
+            "financial": 0.0
+          },
+          "key_indicators": {
+            "traffic": [
+              "Column: Home Broadband Adoption (Percentage of  Households)",
+              "Column: Mobile Broadband Adoption (Percentage of Households)",
+              "Column: No Home Broadband Adoption (Percentage of  Households)",
+              "Column: No Mobile Broadband Adoption (Percentage of Households)",
+              "Column: No Home Broadband Adoption by Quartile",
+              "Column: No Mobile Broadband Adoption by Quartile"
+            ]
+          },
+          "data_characteristics": {
+            "total_records": 248,
+            "total_columns": 17,
+            "numeric_columns": 15,
+            "categorical_columns": 2,
+            "date_columns": 0,
+            "missing_data_percentage": 0.0,
+            "has_coordinates": true,
+            "has_temporal_data": false,
+            "data_completeness": 100.0
+          },
+          "suggested_tags": [
+            "transportation",
+            "geospatial",
+            "small_dataset",
+            "high_quality"
+          ],
+          "content_summary": "This appears to be transportation data with 248 records and 17 columns. The dataset contains geographic coordinates. Data completeness is 100.0%.",
+          "cross_references": [
+            "Contains ID columns: OID - may link to related datasets",
+            "Contains coordinates - can be spatially joined with other geospatial datasets"
+          ]
+        },
+        "tagging_summary": "Dataset tagged as transportation with 4 tags: geospatial, high_quality, small_dataset, transportation\nContains 248 records with 17 columns\nData completeness: 100.0%",
+        "confidence": 0.16,
+        "suggestions": [
+          "Low confidence in tagging - consider manual review"
+        ]
+      },
+      "summary": {
+        "content_type": "transportation",
+        "confidence": 0.16,
+        "tags": [
+          "geospatial",
+          "high_quality",
+          "small_dataset",
+          "transportation"
+        ],
+        "records": 248,
+        "columns": 17
+      }
+    },
+    "construction": {
+      "content_analysis": {
+        "content_type": "construction",
+        "confidence_scores": {
+          "traffic": 0.038461538461538464,
+          "weather": 0.038461538461538464,
+          "construction": 0.38461538461538464,
+          "infrastructure": 0.08,
+          "environmental": 0.043478260869565216,
+          "transportation": 0.0,
+          "safety": 0.043478260869565216,
+          "financial": 0.0
+        },
+        "key_indicators": {
+          "traffic": [
+            "Value in School Name: road",
+            "Value in School Name: street",
+            "Value in Building Address: highway",
+            "Value in Building Address: road",
+            "Value in Building Address: street"
+          ],
+          "infrastructure": [
+            "Value in Project Description: valve"
+          ]
+        },
+        "data_characteristics": {
+          "total_records": 1067,
+          "total_columns": 20,
+          "numeric_columns": 10,
+          "categorical_columns": 10,
+          "date_columns": 0,
+          "missing_data_percentage": 0.0,
+          "has_coordinates": true,
+          "has_temporal_data": false,
+          "data_completeness": 100.0
+        },
+        "suggested_tags": [
+          "construction",
+          "geospatial",
+          "medium_dataset",
+          "high_quality"
+        ],
+        "content_summary": "This appears to be construction data with 1,067 records and 20 columns. The dataset contains geographic coordinates. Data completeness is 100.0%.",
+        "cross_references": [
+          "Contains ID columns: Building ID - may link to related datasets",
+          "Contains coordinates - can be spatially joined with other geospatial datasets"
+        ]
+      },
+      "tagging": {
+        "tags": [
+          "construction",
+          "financial",
+          "geospatial",
+          "high_quality",
+          "medium_dataset",
+          "safety"
+        ],
+        "content_analysis": {
+          "content_type": "construction",
+          "confidence_scores": {
+            "traffic": 0.038461538461538464,
+            "weather": 0.038461538461538464,
+            "construction": 0.38461538461538464,
+            "infrastructure": 0.08,
+            "environmental": 0.043478260869565216,
+            "transportation": 0.0,
+            "safety": 0.043478260869565216,
+            "financial": 0.0
+          },
+          "key_indicators": {
+            "traffic": [
+              "Value in School Name: road",
+              "Value in School Name: street",
+              "Value in Building Address: highway",
+              "Value in Building Address: road",
+              "Value in Building Address: street"
+            ],
+            "infrastructure": [
+              "Value in Project Description: valve"
+            ]
+          },
+          "data_characteristics": {
+            "total_records": 1067,
+            "total_columns": 20,
+            "numeric_columns": 10,
+            "categorical_columns": 10,
+            "date_columns": 0,
+            "missing_data_percentage": 0.0,
+            "has_coordinates": true,
+            "has_temporal_data": false,
+            "data_completeness": 100.0
+          },
+          "suggested_tags": [
+            "construction",
+            "geospatial",
+            "medium_dataset",
+            "high_quality"
+          ],
+          "content_summary": "This appears to be construction data with 1,067 records and 20 columns. The dataset contains geographic coordinates. Data completeness is 100.0%.",
+          "cross_references": [
+            "Contains ID columns: Building ID - may link to related datasets",
+            "Contains coordinates - can be spatially joined with other geospatial datasets"
+          ]
+        },
+        "tagging_summary": "Dataset tagged as construction with 6 tags: construction, financial, geospatial, high_quality, medium_dataset, safety\nContains 1,067 records with 20 columns\nData completeness: 100.0%",
+        "confidence": 0.38461538461538464,
+        "suggestions": [
+          "Low confidence in tagging - consider manual review"
+        ]
+      },
+      "summary": {
+        "content_type": "construction",
+        "confidence": 0.38461538461538464,
+        "tags": [
+          "construction",
+          "financial",
+          "geospatial",
+          "high_quality",
+          "medium_dataset",
+          "safety"
+        ],
+        "records": 1067,
+        "columns": 20
+      }
+    },
+    "traffic": {
+      "content_analysis": {
+        "content_type": "unknown",
+        "confidence_scores": {
+          "traffic": 0.0,
+          "weather": 0.0,
+          "construction": 0.0,
+          "infrastructure": 0.0,
+          "environmental": 0.0,
+          "transportation": 0.0,
+          "safety": 0.0,
+          "financial": 0.0
+        },
+        "key_indicators": {},
+        "data_characteristics": {
+          "total_records": 118,
+          "total_columns": 3,
+          "numeric_columns": 1,
+          "categorical_columns": 2,
+          "date_columns": 0,
+          "missing_data_percentage": 0.0,
+          "has_coordinates": false,
+          "has_temporal_data": false,
+          "data_completeness": 100.0
+        },
+        "suggested_tags": [
+          "small_dataset",
+          "high_quality"
+        ],
+        "content_summary": "This appears to be unknown data with 118 records and 3 columns. Data completeness is 100.0%.",
+        "cross_references": [
+          "Contains ID columns: ID - may link to related datasets"
+        ]
+      },
+      "tagging": {
+        "tags": [
+          "high_quality",
+          "small_dataset"
+        ],
+        "content_analysis": {
+          "content_type": "unknown",
+          "confidence_scores": {
+            "traffic": 0.0,
+            "weather": 0.0,
+            "construction": 0.0,
+            "infrastructure": 0.0,
+            "environmental": 0.0,
+            "transportation": 0.0,
+            "safety": 0.0,
+            "financial": 0.0
+          },
+          "key_indicators": {},
+          "data_characteristics": {
+            "total_records": 118,
+            "total_columns": 3,
+            "numeric_columns": 1,
+            "categorical_columns": 2,
+            "date_columns": 0,
+            "missing_data_percentage": 0.0,
+            "has_coordinates": false,
+            "has_temporal_data": false,
+            "data_completeness": 100.0
+          },
+          "suggested_tags": [
+            "small_dataset",
+            "high_quality"
+          ],
+          "content_summary": "This appears to be unknown data with 118 records and 3 columns. Data completeness is 100.0%.",
+          "cross_references": [
+            "Contains ID columns: ID - may link to related datasets"
+          ]
+        },
+        "tagging_summary": "Dataset tagged as unknown with 2 tags: high_quality, small_dataset\nContains 118 records with 3 columns\nData completeness: 100.0%",
+        "confidence": 0.0,
+        "suggestions": [
+          "Content type unclear - consider manual review",
+          "Low confidence in tagging - consider manual review"
+        ]
+      },
+      "summary": {
+        "content_type": "unknown",
+        "confidence": 0.0,
+        "tags": [
+          "high_quality",
+          "small_dataset"
+        ],
+        "records": 118,
+        "columns": 3
+      }
+    },
+    "parks": {
+      "content_analysis": {
+        "content_type": "construction",
+        "confidence_scores": {
+          "traffic": 0.0,
+          "weather": 0.0,
+          "construction": 0.07692307692307693,
+          "infrastructure": 0.0,
+          "environmental": 0.0,
+          "transportation": 0.08,
+          "safety": 0.0,
+          "financial": 0.0
+        },
+        "key_indicators": {},
+        "data_characteristics": {
+          "total_records": 0,
+          "total_columns": 21,
+          "numeric_columns": 11,
+          "categorical_columns": 10,
+          "date_columns": 0,
+          "missing_data_percentage": NaN,
+          "has_coordinates": false,
+          "has_temporal_data": false,
+          "data_completeness": 0.0
+        },
+        "suggested_tags": [
+          "construction",
+          "small_dataset",
+          "low_quality"
+        ],
+        "content_summary": "This appears to be construction data with 0 records and 21 columns. Data completeness is 0.0%.",
+        "cross_references": [
+          "Contains ID columns: Facility ID, Place ID, BuildingID, LotID - may link to related datasets"
+        ]
+      },
+      "tagging": {
+        "tags": [
+          "construction",
+          "financial",
+          "geospatial",
+          "low_quality",
+          "safety",
+          "small_dataset"
+        ],
+        "content_analysis": {
+          "content_type": "construction",
+          "confidence_scores": {
+            "traffic": 0.0,
+            "weather": 0.0,
+            "construction": 0.07692307692307693,
+            "infrastructure": 0.0,
+            "environmental": 0.0,
+            "transportation": 0.08,
+            "safety": 0.0,
+            "financial": 0.0
+          },
+          "key_indicators": {},
+          "data_characteristics": {
+            "total_records": 0,
+            "total_columns": 21,
+            "numeric_columns": 11,
+            "categorical_columns": 10,
+            "date_columns": 0,
+            "missing_data_percentage": NaN,
+            "has_coordinates": false,
+            "has_temporal_data": false,
+            "data_completeness": 0.0
+          },
+          "suggested_tags": [
+            "construction",
+            "small_dataset",
+            "low_quality"
+          ],
+          "content_summary": "This appears to be construction data with 0 records and 21 columns. Data completeness is 0.0%.",
+          "cross_references": [
+            "Contains ID columns: Facility ID, Place ID, BuildingID, LotID - may link to related datasets"
+          ]
+        },
+        "tagging_summary": "Dataset tagged as construction with 6 tags: construction, financial, geospatial, low_quality, safety, small_dataset\nContains 0 records with 21 columns\nData completeness: 0.0%",
+        "confidence": 0.07692307692307693,
+        "suggestions": [
+          "Low confidence in tagging - consider manual review"
+        ]
+      },
+      "summary": {
+        "content_type": "construction",
+        "confidence": 0.07692307692307693,
+        "tags": [
+          "construction",
+          "financial",
+          "geospatial",
+          "low_quality",
+          "safety",
+          "small_dataset"
+        ],
+        "records": 0,
+        "columns": 21
+      }
+    },
+    "geographic": {
+      "content_analysis": {
+        "content_type": "unknown",
+        "confidence_scores": {
+          "traffic": 0.0,
+          "weather": 0.0,
+          "construction": 0.0,
+          "infrastructure": 0.0,
+          "environmental": 0.0,
+          "transportation": 0.0,
+          "safety": 0.0,
+          "financial": 0.0
+        },
+        "key_indicators": {},
+        "data_characteristics": {
+          "total_records": 1,
+          "total_columns": 5,
+          "numeric_columns": 3,
+          "categorical_columns": 2,
+          "date_columns": 0,
+          "missing_data_percentage": 0.0,
+          "has_coordinates": false,
+          "has_temporal_data": false,
+          "data_completeness": 100.0
+        },
+        "suggested_tags": [
+          "small_dataset",
+          "high_quality"
+        ],
+        "content_summary": "This appears to be unknown data with 1 records and 5 columns. Data completeness is 100.0%.",
+        "cross_references": [
+          "Contains ID columns: OBJECTID - may link to related datasets"
+        ]
+      },
+      "tagging": {
+        "tags": [
+          "high_quality",
+          "small_dataset"
+        ],
+        "content_analysis": {
+          "content_type": "unknown",
+          "confidence_scores": {
+            "traffic": 0.0,
+            "weather": 0.0,
+            "construction": 0.0,
+            "infrastructure": 0.0,
+            "environmental": 0.0,
+            "transportation": 0.0,
+            "safety": 0.0,
+            "financial": 0.0
+          },
+          "key_indicators": {},
+          "data_characteristics": {
+            "total_records": 1,
+            "total_columns": 5,
+            "numeric_columns": 3,
+            "categorical_columns": 2,
+            "date_columns": 0,
+            "missing_data_percentage": 0.0,
+            "has_coordinates": false,
+            "has_temporal_data": false,
+            "data_completeness": 100.0
+          },
+          "suggested_tags": [
+            "small_dataset",
+            "high_quality"
+          ],
+          "content_summary": "This appears to be unknown data with 1 records and 5 columns. Data completeness is 100.0%.",
+          "cross_references": [
+            "Contains ID columns: OBJECTID - may link to related datasets"
+          ]
+        },
+        "tagging_summary": "Dataset tagged as unknown with 2 tags: high_quality, small_dataset\nContains 1 records with 5 columns\nData completeness: 100.0%",
+        "confidence": 0.0,
+        "suggestions": [
+          "Content type unclear - consider manual review",
+          "Low confidence in tagging - consider manual review"
+        ]
+      },
+      "summary": {
+        "content_type": "unknown",
+        "confidence": 0.0,
+        "tags": [
+          "high_quality",
+          "small_dataset"
+        ],
+        "records": 1,
+        "columns": 5
+      }
+    },
+    "climate": {
+      "content_analysis": {
+        "content_type": "weather",
+        "confidence_scores": {
+          "traffic": 0.0,
+          "weather": 0.15384615384615385,
+          "construction": 0.0,
+          "infrastructure": 0.0,
+          "environmental": 0.0,
+          "transportation": 0.0,
+          "safety": 0.0,
+          "financial": 0.0
+        },
+        "key_indicators": {},
+        "data_characteristics": {
+          "total_records": 240829,
+          "total_columns": 13,
+          "numeric_columns": 4,
+          "categorical_columns": 9,
+          "date_columns": 0,
+          "missing_data_percentage": 0.0,
+          "has_coordinates": false,
+          "has_temporal_data": false,
+          "data_completeness": 100.0
+        },
+        "suggested_tags": [
+          "weather",
+          "large_dataset",
+          "high_quality"
+        ],
+        "content_summary": "This appears to be weather data with 240,829 records and 13 columns. Data completeness is 100.0%.",
+        "cross_references": [
+          "Contains ID columns: id1, id2 - may link to related datasets"
+        ]
+      },
+      "tagging": {
+        "tags": [
+          "environmental",
+          "high_quality",
+          "massive_dataset",
+          "weather"
+        ],
+        "content_analysis": {
+          "content_type": "weather",
+          "confidence_scores": {
+            "traffic": 0.0,
+            "weather": 0.15384615384615385,
+            "construction": 0.0,
+            "infrastructure": 0.0,
+            "environmental": 0.0,
+            "transportation": 0.0,
+            "safety": 0.0,
+            "financial": 0.0
+          },
+          "key_indicators": {},
+          "data_characteristics": {
+            "total_records": 240829,
+            "total_columns": 13,
+            "numeric_columns": 4,
+            "categorical_columns": 9,
+            "date_columns": 0,
+            "missing_data_percentage": 0.0,
+            "has_coordinates": false,
+            "has_temporal_data": false,
+            "data_completeness": 100.0
+          },
+          "suggested_tags": [
+            "weather",
+            "large_dataset",
+            "high_quality"
+          ],
+          "content_summary": "This appears to be weather data with 240,829 records and 13 columns. Data completeness is 100.0%.",
+          "cross_references": [
+            "Contains ID columns: id1, id2 - may link to related datasets"
+          ]
+        },
+        "tagging_summary": "Dataset tagged as weather with 4 tags: environmental, high_quality, massive_dataset, weather\nContains 240,829 records with 13 columns\nData completeness: 100.0%",
+        "confidence": 0.15384615384615385,
+        "suggestions": [
+          "Low confidence in tagging - consider manual review"
+        ]
+      },
+      "summary": {
+        "content_type": "weather",
+        "confidence": 0.15384615384615385,
+        "tags": [
+          "environmental",
+          "high_quality",
+          "massive_dataset",
+          "weather"
+        ],
+        "records": 240829,
+        "columns": 13
+      }
+    }
+  },
+  "cross_dataset_analysis": {
+    "dataset_analyses": {
+      "buildings": {
+        "content_type": "construction",
+        "confidence_scores": {
+          "traffic": 0.07692307692307693,
+          "weather": 0.15384615384615385,
+          "construction": 0.38461538461538464,
+          "infrastructure": 0.24,
+          "environmental": 0.17391304347826086,
+          "transportation": 0.0,
+          "safety": 0.30434782608695654,
+          "financial": 0.16
+        },
+        "key_indicators": {
+          "traffic": [
+            "Value in Description: road",
+            "Value in Description: street",
+            "Value in Scope: road",
+            "Value in Scope: street"
+          ],
+          "weather": [
+            "Value in Scope: forecast"
+          ],
+          "infrastructure": [
+            "Value in Scope: valve",
+            "Value in Scope: transformer"
+          ]
+        },
+        "data_characteristics": {
+          "total_records": 310,
+          "total_columns": 9,
+          "numeric_columns": 0,
+          "categorical_columns": 9,
+          "date_columns": 0,
+          "missing_data_percentage": 0.0,
+          "has_coordinates": false,
+          "has_temporal_data": false,
+          "data_completeness": 100.0
+        },
+        "suggested_tags": [
+          "construction",
+          "small_dataset",
+          "high_quality"
+        ],
+        "content_summary": "This appears to be construction data with 310 records and 9 columns. Data completeness is 100.0%.",
+        "cross_references": [
+          "Contains ID columns: Project ID - may link to related datasets"
+        ]
+      },
+      "infrastructure": {
+        "content_type": "transportation",
+        "confidence_scores": {
+          "traffic": 0.0,
+          "weather": 0.07692307692307693,
+          "construction": 0.07692307692307693,
+          "infrastructure": 0.0,
+          "environmental": 0.0,
+          "transportation": 0.16,
+          "safety": 0.0,
+          "financial": 0.0
+        },
+        "key_indicators": {
+          "traffic": [
+            "Column: Home Broadband Adoption (Percentage of  Households)",
+            "Column: Mobile Broadband Adoption (Percentage of Households)",
+            "Column: No Home Broadband Adoption (Percentage of  Households)",
+            "Column: No Mobile Broadband Adoption (Percentage of Households)",
+            "Column: No Home Broadband Adoption by Quartile",
+            "Column: No Mobile Broadband Adoption by Quartile"
+          ]
+        },
+        "data_characteristics": {
+          "total_records": 248,
+          "total_columns": 17,
+          "numeric_columns": 15,
+          "categorical_columns": 2,
+          "date_columns": 0,
+          "missing_data_percentage": 0.0,
+          "has_coordinates": true,
+          "has_temporal_data": false,
+          "data_completeness": 100.0
+        },
+        "suggested_tags": [
+          "transportation",
+          "geospatial",
+          "small_dataset",
+          "high_quality"
+        ],
+        "content_summary": "This appears to be transportation data with 248 records and 17 columns. The dataset contains geographic coordinates. Data completeness is 100.0%.",
+        "cross_references": [
+          "Contains ID columns: OID - may link to related datasets",
+          "Contains coordinates - can be spatially joined with other geospatial datasets"
+        ]
+      },
+      "construction": {
+        "content_type": "construction",
+        "confidence_scores": {
+          "traffic": 0.038461538461538464,
+          "weather": 0.038461538461538464,
+          "construction": 0.38461538461538464,
+          "infrastructure": 0.08,
+          "environmental": 0.043478260869565216,
+          "transportation": 0.0,
+          "safety": 0.043478260869565216,
+          "financial": 0.0
+        },
+        "key_indicators": {
+          "traffic": [
+            "Value in School Name: road",
+            "Value in School Name: street",
+            "Value in Building Address: highway",
+            "Value in Building Address: road",
+            "Value in Building Address: street"
+          ],
+          "infrastructure": [
+            "Value in Project Description: valve"
+          ]
+        },
+        "data_characteristics": {
+          "total_records": 1067,
+          "total_columns": 20,
+          "numeric_columns": 10,
+          "categorical_columns": 10,
+          "date_columns": 0,
+          "missing_data_percentage": 0.0,
+          "has_coordinates": true,
+          "has_temporal_data": false,
+          "data_completeness": 100.0
+        },
+        "suggested_tags": [
+          "construction",
+          "geospatial",
+          "medium_dataset",
+          "high_quality"
+        ],
+        "content_summary": "This appears to be construction data with 1,067 records and 20 columns. The dataset contains geographic coordinates. Data completeness is 100.0%.",
+        "cross_references": [
+          "Contains ID columns: Building ID - may link to related datasets",
+          "Contains coordinates - can be spatially joined with other geospatial datasets"
+        ]
+      },
+      "traffic": {
+        "content_type": "unknown",
+        "confidence_scores": {
+          "traffic": 0.0,
+          "weather": 0.0,
+          "construction": 0.0,
+          "infrastructure": 0.0,
+          "environmental": 0.0,
+          "transportation": 0.0,
+          "safety": 0.0,
+          "financial": 0.0
+        },
+        "key_indicators": {},
+        "data_characteristics": {
+          "total_records": 118,
+          "total_columns": 3,
+          "numeric_columns": 1,
+          "categorical_columns": 2,
+          "date_columns": 0,
+          "missing_data_percentage": 0.0,
+          "has_coordinates": false,
+          "has_temporal_data": false,
+          "data_completeness": 100.0
+        },
+        "suggested_tags": [
+          "small_dataset",
+          "high_quality"
+        ],
+        "content_summary": "This appears to be unknown data with 118 records and 3 columns. Data completeness is 100.0%.",
+        "cross_references": [
+          "Contains ID columns: ID - may link to related datasets"
+        ]
+      },
+      "parks": {
+        "content_type": "construction",
+        "confidence_scores": {
+          "traffic": 0.0,
+          "weather": 0.0,
+          "construction": 0.07692307692307693,
+          "infrastructure": 0.0,
+          "environmental": 0.0,
+          "transportation": 0.08,
+          "safety": 0.0,
+          "financial": 0.0
+        },
+        "key_indicators": {},
+        "data_characteristics": {
+          "total_records": 0,
+          "total_columns": 21,
+          "numeric_columns": 11,
+          "categorical_columns": 10,
+          "date_columns": 0,
+          "missing_data_percentage": NaN,
+          "has_coordinates": false,
+          "has_temporal_data": false,
+          "data_completeness": 0.0
+        },
+        "suggested_tags": [
+          "construction",
+          "small_dataset",
+          "low_quality"
+        ],
+        "content_summary": "This appears to be construction data with 0 records and 21 columns. Data completeness is 0.0%.",
+        "cross_references": [
+          "Contains ID columns: Facility ID, Place ID, BuildingID, LotID - may link to related datasets"
+        ]
+      },
+      "geographic": {
+        "content_type": "unknown",
+        "confidence_scores": {
+          "traffic": 0.0,
+          "weather": 0.0,
+          "construction": 0.0,
+          "infrastructure": 0.0,
+          "environmental": 0.0,
+          "transportation": 0.0,
+          "safety": 0.0,
+          "financial": 0.0
+        },
+        "key_indicators": {},
+        "data_characteristics": {
+          "total_records": 1,
+          "total_columns": 5,
+          "numeric_columns": 3,
+          "categorical_columns": 2,
+          "date_columns": 0,
+          "missing_data_percentage": 0.0,
+          "has_coordinates": false,
+          "has_temporal_data": false,
+          "data_completeness": 100.0
+        },
+        "suggested_tags": [
+          "small_dataset",
+          "high_quality"
+        ],
+        "content_summary": "This appears to be unknown data with 1 records and 5 columns. Data completeness is 100.0%.",
+        "cross_references": [
+          "Contains ID columns: OBJECTID - may link to related datasets"
+        ]
+      },
+      "climate": {
+        "content_type": "weather",
+        "confidence_scores": {
+          "traffic": 0.0,
+          "weather": 0.15384615384615385,
+          "construction": 0.0,
+          "infrastructure": 0.0,
+          "environmental": 0.0,
+          "transportation": 0.0,
+          "safety": 0.0,
+          "financial": 0.0
+        },
+        "key_indicators": {},
+        "data_characteristics": {
+          "total_records": 240829,
+          "total_columns": 13,
+          "numeric_columns": 4,
+          "categorical_columns": 9,
+          "date_columns": 0,
+          "missing_data_percentage": 0.0,
+          "has_coordinates": false,
+          "has_temporal_data": false,
+          "data_completeness": 100.0
+        },
+        "suggested_tags": [
+          "weather",
+          "large_dataset",
+          "high_quality"
+        ],
+        "content_summary": "This appears to be weather data with 240,829 records and 13 columns. Data completeness is 100.0%.",
+        "cross_references": [
+          "Contains ID columns: id1, id2 - may link to related datasets"
+        ]
+      }
+    },
+    "relationships": {
+      "spatial": [],
+      "temporal": [],
+      "thematic": [
+        {
+          "dataset1": "buildings",
+          "dataset2": "construction",
+          "relationship_type": "thematic_same",
+          "content_type": "construction",
+          "strength": "strong",
+          "description": "Both buildings and construction contain construction data"
+        },
+        {
+          "dataset1": "buildings",
+          "dataset2": "parks",
+          "relationship_type": "thematic_same",
+          "content_type": "construction",
+          "strength": "strong",
+          "description": "Both buildings and parks contain construction data"
+        },
+        {
+          "dataset1": "construction",
+          "dataset2": "parks",
+          "relationship_type": "thematic_same",
+          "content_type": "construction",
+          "strength": "strong",
+          "description": "Both construction and parks contain construction data"
+        }
+      ],
+      "structural": [],
+      "quality": [
+        {
+          "dataset1": "buildings",
+          "dataset2": "infrastructure",
+          "relationship_type": "quality_similarity",
+          "completeness1": 100.0,
+          "completeness2": 100.0,
+          "difference": 0.0,
+          "strength": "moderate",
+          "description": "Similar data quality: 100.0% vs 100.0% completeness"
+        },
+        {
+          "dataset1": "buildings",
+          "dataset2": "construction",
+          "relationship_type": "quality_similarity",
+          "completeness1": 100.0,
+          "completeness2": 100.0,
+          "difference": 0.0,
+          "strength": "moderate",
+          "description": "Similar data quality: 100.0% vs 100.0% completeness"
+        },
+        {
+          "dataset1": "buildings",
+          "dataset2": "traffic",
+          "relationship_type": "quality_similarity",
+          "completeness1": 100.0,
+          "completeness2": 100.0,
+          "difference": 0.0,
+          "strength": "moderate",
+          "description": "Similar data quality: 100.0% vs 100.0% completeness"
+        },
+        {
+          "dataset1": "buildings",
+          "dataset2": "geographic",
+          "relationship_type": "quality_similarity",
+          "completeness1": 100.0,
+          "completeness2": 100.0,
+          "difference": 0.0,
+          "strength": "moderate",
+          "description": "Similar data quality: 100.0% vs 100.0% completeness"
+        },
+        {
+          "dataset1": "buildings",
+          "dataset2": "climate",
+          "relationship_type": "quality_similarity",
+          "completeness1": 100.0,
+          "completeness2": 100.0,
+          "difference": 0.0,
+          "strength": "moderate",
+          "description": "Similar data quality: 100.0% vs 100.0% completeness"
+        },
+        {
+          "dataset1": "infrastructure",
+          "dataset2": "construction",
+          "relationship_type": "quality_similarity",
+          "completeness1": 100.0,
+          "completeness2": 100.0,
+          "difference": 0.0,
+          "strength": "moderate",
+          "description": "Similar data quality: 100.0% vs 100.0% completeness"
+        },
+        {
+          "dataset1": "infrastructure",
+          "dataset2": "traffic",
+          "relationship_type": "quality_similarity",
+          "completeness1": 100.0,
+          "completeness2": 100.0,
+          "difference": 0.0,
+          "strength": "moderate",
+          "description": "Similar data quality: 100.0% vs 100.0% completeness"
+        },
+        {
+          "dataset1": "infrastructure",
+          "dataset2": "geographic",
+          "relationship_type": "quality_similarity",
+          "completeness1": 100.0,
+          "completeness2": 100.0,
+          "difference": 0.0,
+          "strength": "moderate",
+          "description": "Similar data quality: 100.0% vs 100.0% completeness"
+        },
+        {
+          "dataset1": "infrastructure",
+          "dataset2": "climate",
+          "relationship_type": "quality_similarity",
+          "completeness1": 100.0,
+          "completeness2": 100.0,
+          "difference": 0.0,
+          "strength": "moderate",
+          "description": "Similar data quality: 100.0% vs 100.0% completeness"
+        },
+        {
+          "dataset1": "construction",
+          "dataset2": "traffic",
+          "relationship_type": "quality_similarity",
+          "completeness1": 100.0,
+          "completeness2": 100.0,
+          "difference": 0.0,
+          "strength": "moderate",
+          "description": "Similar data quality: 100.0% vs 100.0% completeness"
+        },
+        {
+          "dataset1": "construction",
+          "dataset2": "geographic",
+          "relationship_type": "quality_similarity",
+          "completeness1": 100.0,
+          "completeness2": 100.0,
+          "difference": 0.0,
+          "strength": "moderate",
+          "description": "Similar data quality: 100.0% vs 100.0% completeness"
+        },
+        {
+          "dataset1": "construction",
+          "dataset2": "climate",
+          "relationship_type": "quality_similarity",
+          "completeness1": 100.0,
+          "completeness2": 100.0,
+          "difference": 0.0,
+          "strength": "moderate",
+          "description": "Similar data quality: 100.0% vs 100.0% completeness"
+        },
+        {
+          "dataset1": "traffic",
+          "dataset2": "geographic",
+          "relationship_type": "quality_similarity",
+          "completeness1": 100.0,
+          "completeness2": 100.0,
+          "difference": 0.0,
+          "strength": "moderate",
+          "description": "Similar data quality: 100.0% vs 100.0% completeness"
+        },
+        {
+          "dataset1": "traffic",
+          "dataset2": "climate",
+          "relationship_type": "quality_similarity",
+          "completeness1": 100.0,
+          "completeness2": 100.0,
+          "difference": 0.0,
+          "strength": "moderate",
+          "description": "Similar data quality: 100.0% vs 100.0% completeness"
+        },
+        {
+          "dataset1": "geographic",
+          "dataset2": "climate",
+          "relationship_type": "quality_similarity",
+          "completeness1": 100.0,
+          "completeness2": 100.0,
+          "difference": 0.0,
+          "strength": "moderate",
+          "description": "Similar data quality: 100.0% vs 100.0% completeness"
+        }
+      ]
+    },
+    "combinations": [
+      {
+        "combination_id": "group_0",
+        "datasets": [
+          "buildings",
+          "construction"
+        ],
+        "relationship_types": [
+          "thematic_same"
+        ],
+        "suggested_analysis": [
+          "Spatial analysis and mapping"
+        ],
+        "strength": "moderate"
+      },
+      {
+        "combination_id": "group_1",
+        "datasets": [
+          "buildings",
+          "parks",
+          "construction"
+        ],
+        "relationship_types": [
+          "thematic_same",
+          "thematic_same",
+          "thematic_same"
+        ],
+        "suggested_analysis": [
+          "Multi-dataset correlation analysis",
+          "Spatial analysis and mapping"
+        ],
+        "strength": "strong"
+      }
+    ],
+    "insights": [
+      "Found 3 thematic relationships - datasets cover related topics",
+      "Most common content type: construction (3 datasets)",
+      "Average data completeness: 85.7%"
+    ],
+    "summary": "Cross-dataset analysis of 7 datasets\nFound 18 relationships across 5 categories\nIdentified 2 potential dataset combinations\n1 strong combinations recommended for analysis"
+  },
+  "timestamp": "2025-07-06T17:15:59.689173"
+}
