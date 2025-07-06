@@ -6,8 +6,8 @@
 # from .query_engine import QueryEngine
 from .universal_reporter import UniversalReporter
 from .system_integration import SystemIntegration
-from .risk_analyzer import RiskAnalyzer
-from .survey_analyzer import SurveyAnalyzer
+from .analyzers.risk_analyzer import RiskAnalyzer
+from .analyzers.survey_analyzer import SurveyAnalyzer
 from .report_formatter import ReportFormatter
 from .dataset_config import DatasetConfig
 

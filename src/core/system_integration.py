@@ -8,8 +8,8 @@ from typing import Dict, List, Optional, Any
 import logging
 from .universal_reporter import UniversalReporter
 from .report_formatter import ReportFormatter
-from .risk_analyzer import RiskAnalyzer
-from .survey_analyzer import SurveyAnalyzer
+from .analyzers.risk_analyzer import RiskAnalyzer
+from .analyzers.survey_analyzer import SurveyAnalyzer
 from ..ml.neural_network import CivilEngineeringSystem as NeuralNetwork
 from ..utils.logging_utils import setup_logging
 

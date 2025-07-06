@@ -2,14 +2,15 @@
 # Date: 2024
 # Description: Survey analysis module for civil engineering projects
 
+import pandas as pd
 import numpy as np
-from typing import Dict, List, Optional
-import logging
-from ..utils.logging_utils import setup_logging, log_performance
+from typing import Dict, List, Optional, Any
+from .base_analyzer import BaseAnalyzer
+from ...utils.logging_utils import setup_logging, log_performance
 
 logger = setup_logging(__name__)
 
-class SurveyAnalyzer:
+class SurveyAnalyzer(BaseAnalyzer):
     # Survey analyzer for civil engineering projects
     # This module handles survey requirements, cost estimation, and priority scoring
     # TODO: Add survey method optimization algorithms
@@ -18,8 +19,97 @@ class SurveyAnalyzer:
     
     @log_performance(logger)
     def __init__(self):
+        super().__init__()
         # Initialize the survey analyzer
         logger.info("Initialized SurveyAnalyzer")
+    
+    def analyze(self, dataset: pd.DataFrame, **kwargs) -> Dict[str, Any]:
+        """Analyze survey requirements and recommendations"""
+        self.logger.info(f"Analyzing survey requirements with {len(dataset)} records")
+        
+        # Extract features from dataset for survey analysis
+        features = self._extract_features_from_dataset(dataset)
+        
+        return {
+            'required_surveys': self.identify_required_surveys(features),
+            'survey_methods': self.recommend_survey_methods(features),
+            'survey_costs': self.estimate_survey_costs(features),
+            'priority_scores': self.calculate_priority_scores(features),
+            'data_gaps': self.identify_data_gaps(features),
+            'recommendations': self.generate_survey_recommendations(features),
+            'summary': self._generate_summary(dataset, features)
+        }
+    
+    def _extract_features_from_dataset(self, dataset: pd.DataFrame) -> Dict[str, Any]:
+        """Extract features from dataset for survey analysis"""
+        features = {
+            'infrastructure': {},
+            'climate': {},
+            'vegetation': {},
+            'flood_risk': 0.0,
+            'soil_risk': 0.0,
+            'infrastructure_count': 0
+        }
+        
+        # Check for infrastructure data
+        infra_patterns = ['pipe', 'electrical', 'water', 'gas', 'road', 'bridge']
+        infra_cols = self._find_columns_by_patterns(dataset, infra_patterns)
+        if infra_cols:
+            features['infrastructure'] = {'count': len(infra_cols)}
+            features['infrastructure_count'] = len(infra_cols)
+        
+        # Check for climate data
+        climate_patterns = ['temperature', 'rainfall', 'wind', 'humidity', 'climate']
+        climate_cols = self._find_columns_by_patterns(dataset, climate_patterns)
+        if climate_cols:
+            features['climate'] = {'count': len(climate_cols)}
+        
+        # Check for vegetation data
+        vegetation_patterns = ['vegetation', 'tree', 'plant', 'species', 'density']
+        vegetation_cols = self._find_columns_by_patterns(dataset, vegetation_patterns)
+        if vegetation_cols:
+            features['vegetation'] = {'count': len(vegetation_cols)}
+        
+        # Check for flood risk indicators
+        flood_patterns = ['flood', 'water', 'river', 'stream', 'drainage']
+        flood_cols = self._find_columns_by_patterns(dataset, flood_patterns)
+        if flood_cols:
+            features['flood_risk'] = min(1.0, len(flood_cols) * 0.2)  # Scale risk based on flood-related columns
+        
+        # Check for soil risk indicators
+        soil_patterns = ['soil', 'geotechnical', 'bearing_capacity', 'moisture', 'ph']
+        soil_cols = self._find_columns_by_patterns(dataset, soil_patterns)
+        if soil_cols:
+            features['soil_risk'] = min(1.0, len(soil_cols) * 0.15)  # Scale risk based on soil-related columns
+        
+        return features
+    
+    def _generate_summary(self, dataset: pd.DataFrame, features: Dict[str, Any]) -> List[str]:
+        """Generate survey analysis summary"""
+        summary = []
+        summary.append(f"Survey analysis dataset: {len(dataset)} records")
+        
+        # Count survey-related data found
+        survey_patterns = ['survey', 'inspection', 'assessment', 'investigation']
+        survey_cols = self._find_columns_by_patterns(dataset, survey_patterns)
+        if survey_cols:
+            summary.append(f"Survey-related data: {len(survey_cols)} columns identified")
+        
+        # Summary of features found
+        if features.get('infrastructure'):
+            summary.append(f"Infrastructure data: {features['infrastructure_count']} types found")
+        if features.get('climate'):
+            summary.append(f"Climate data: {features['climate']['count']} types found")
+        if features.get('vegetation'):
+            summary.append(f"Vegetation data: {features['vegetation']['count']} types found")
+        
+        # Risk summary
+        if features.get('flood_risk', 0) > 0:
+            summary.append(f"Flood risk indicators: {features['flood_risk']:.1%}")
+        if features.get('soil_risk', 0) > 0:
+            summary.append(f"Soil risk indicators: {features['soil_risk']:.1%}")
+        
+        return summary
     
     @log_performance(logger)
     def identify_required_surveys(self, features: Dict) -> List[str]:

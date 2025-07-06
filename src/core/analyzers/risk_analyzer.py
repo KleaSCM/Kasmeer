@@ -5,7 +5,7 @@
 import numpy as np
 from typing import Dict, List, Optional
 import logging
-from ..utils.logging_utils import setup_logging, log_performance
+from ...utils.logging_utils import setup_logging, log_performance
 
 logger = setup_logging(__name__)
 
