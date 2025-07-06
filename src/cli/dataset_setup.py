@@ -251,7 +251,6 @@ def _configure_column_mappings(dataset_config: DatasetConfig, dataset_type: str,
                 console.print(f"[red]❌ Column '{original_col}' not found![/red]")
 
 @dataset_setup.command()
-@dataset_setup.command()
 @click.option('--config-path', default='config.yaml', help='Path to configuration file')
 @click.option('--output-path', help='Output path for the template')
 @log_performance(logger)
