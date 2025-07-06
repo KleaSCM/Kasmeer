@@ -191,7 +191,7 @@ class UniversalReporter:
                     'project': project_desc,
                     'school': row.get('School Name', ''),
                     'project_type': project_type,
-                    'estimated_cost': f"${construction_award:,.0f}" if pd.notna(construction_award) else 'Unknown',
+                    'estimated_cost': f"${construction_award:,.0f}" if isinstance(construction_award, (int, float)) and pd.notna(construction_award) else 'Unknown',
                     'materials_required': [],
                     'equipment_systems': [],
                     'address': row.get('Building Address', ''),
@@ -199,7 +199,7 @@ class UniversalReporter:
                 }
                 
                 # Analyze project description for materials and equipment
-                desc_lower = project_desc.lower()
+                desc_lower = project_desc.lower() if isinstance(project_desc, str) else ''
                 
                 # HVAC and Climate Control Systems
                 if 'climate control' in desc_lower or 'boiler' in desc_lower:
@@ -367,7 +367,7 @@ class UniversalReporter:
                     'name': row.get('Project Description', 'Unknown'),
                     'campus': row.get('School Name', 'Unknown'),
                     'project_id': row.get('Building ID', 'Unknown'),
-                    'estimated_value': f"${row.get('Construction Award', 0):,.0f}" if pd.notna(row.get('Construction Award')) else 'Unknown',
+                    'estimated_value': f"${row.get('Construction Award', 0):,.0f}" if isinstance(row.get('Construction Award', 0), (int, float)) and row.get('Construction Award', 0) is not None else 'Unknown',
                     'project_type': row.get('Project type', 'Unknown'),
                     'address': row.get('Building Address', 'Unknown'),
                     'borough': row.get('Borough', 'Unknown'),
@@ -378,12 +378,14 @@ class UniversalReporter:
         # Also check for other project-related columns
         if 'Project Description' in dataset.columns:
             for idx, row in dataset.iterrows():
-                if 'Project Description' in row and pd.notna(row['Project Description']):
-                    history['summary'].append(f"Project: {row['Project Description'][:100]}...")
+                desc = row.get('Project Description', None)
+                if isinstance(desc, str) and pd.notna(desc):
+                    history['summary'].append(f"Project: {desc[:100]}...")
         
         if 'School Name' in dataset.columns:
             schools = dataset['School Name'].value_counts()
-            history['summary'].append(f"Schools involved: {', '.join(schools.head(3).index.tolist())}")
+            school_names = [str(s) for s in schools.head(3).index.tolist()]
+            history['summary'].append(f"Schools involved: {', '.join(school_names)}")
         
         # Analyze construction awards
         if 'Construction Award' in dataset.columns:
@@ -401,10 +403,11 @@ class UniversalReporter:
                     
                     # Add detailed cost breakdown
                     for idx, row in dataset.iterrows():
-                        if pd.notna(row.get('Construction Award')):
+                        award_val = row.get('Construction Award')
+                        if isinstance(award_val, (int, float)) and pd.notna(award_val):
                             history['project_details'].append({
                                 'project': row.get('Project Description', 'Unknown'),
-                                'estimated_value': f"${row.get('Construction Award', 0):,.0f}",
+                                'estimated_value': f"${award_val:,.0f}",
                                 'project_id': row.get('Building ID', 'Unknown'),
                                 'campus': row.get('School Name', 'Unknown'),
                                 'project_type': row.get('Project type', 'Unknown')
@@ -679,7 +682,8 @@ class UniversalReporter:
                     
                     # Add detailed cost breakdown
                     for idx, row in dataset.iterrows():
-                        if pd.notna(row.get('Construction Award')):
+                        award_val = row.get('Construction Award')
+                        if isinstance(award_val, (int, float)) and not pd.isna(award_val):
                             costs['cost_details'].append({
                                 'project': row.get('Project Description', 'Unknown'),
                                 'estimated_value': f"${row.get('Construction Award', 0):,.0f}",
@@ -749,7 +753,7 @@ class UniversalReporter:
                     'project': project_desc,
                     'school': school_name,
                     'project_type': project_type,
-                    'estimated_cost': f"${construction_award:,.0f}" if pd.notna(construction_award) else 'Unknown',
+                    'estimated_cost': f"${construction_award:,.0f}" if isinstance(construction_award, (int, float)) and pd.notna(construction_award) else 'Unknown',
                     'risk_level': 'Medium',
                     'structural_risks': [],
                     'environmental_risks': [],
@@ -760,7 +764,7 @@ class UniversalReporter:
                     'recommendations': []
                 }
                 
-                desc_lower = project_desc.lower()
+                desc_lower = project_desc.lower() if isinstance(project_desc, str) else ''
                 
                 # Structural Risk Assessment
                 if 'structural' in desc_lower or 'defect' in desc_lower:
@@ -815,7 +819,7 @@ class UniversalReporter:
                     ])
                 
                 # Financial Risk Assessment
-                if pd.notna(construction_award) and construction_award > 5000000:  # $5M+
+                if isinstance(construction_award, (int, float)) and pd.notna(construction_award) and construction_award > 5000000:  # $5M+
                     risk_detail['financial_risks'].extend([
                         'High-value project financial exposure',
                         'Budget overrun risks',
@@ -1267,7 +1271,6 @@ class UniversalReporter:
                     }
             except Exception as e:
                 logger.warning(f"Geographic bounds calculation failed: {e}")
-        
         return overview
     
     def _analyze_data_quality(self, dataset: pd.DataFrame) -> Dict[str, Any]:
@@ -1500,7 +1503,6 @@ class UniversalReporter:
             'categorical_associations': {},
             'significant_relationships': []
         }
-        
         # Numeric correlations
         numeric_cols = list(dataset.select_dtypes(include=[np.number]).columns)
         if len(numeric_cols) > 1:
@@ -1513,7 +1515,6 @@ class UniversalReporter:
             except Exception as e:
                 logger.warning(f"Correlation analysis failed: {e}")
                 correlations['numeric_correlations'] = {'error': str(e)}
-        
         return correlations
     
     def _detect_anomalies(self, dataset: pd.DataFrame) -> Dict[str, Any]:
@@ -1667,13 +1668,16 @@ class UniversalReporter:
                 try:
                     # Convert to numeric and get actual statistics
                     numeric_data = pd.to_numeric(dataset[col], errors='coerce')
-                    if not numeric_data.isna().all():
+                    import numpy as np
+                    arr = np.asarray(numeric_data)
+                    is_valid = not np.isnan(arr).all()
+                    if is_valid:
                         dimensions[col] = {
-                            'min': float(numeric_data.min()),
-                            'max': float(numeric_data.max()),
-                            'mean': float(numeric_data.mean()),
-                            'std': float(numeric_data.std()),
-                            'median': float(numeric_data.median())
+                            'min': float(np.nanmin(arr)),
+                            'max': float(np.nanmax(arr)),
+                            'mean': float(np.nanmean(arr)),
+                            'std': float(np.nanstd(arr)),
+                            'median': float(np.nanmedian(arr))
                         }
                 except Exception as e:
                     logger.warning(f"Dimension analysis failed for column {col}: {e}")
@@ -1703,7 +1707,7 @@ class UniversalReporter:
             if col in dataset.columns and dataset[col].dtype in ['int64', 'float64']:
                 try:
                     numeric_data = pd.to_numeric(dataset[col], errors='coerce')
-                    if not numeric_data.isna().all():
+                    if isinstance(numeric_data, pd.Series) and not numeric_data.isna().all():
                         vegetation_analysis[f'{col}_stats'] = {
                             'min': float(numeric_data.min()),
                             'max': float(numeric_data.max()),
@@ -1727,7 +1731,7 @@ class UniversalReporter:
             if col in dataset.columns and dataset[col].dtype in ['int64', 'float64']:
                 try:
                     numeric_data = pd.to_numeric(dataset[col], errors='coerce')
-                    if not numeric_data.isna().all():
+                    if isinstance(numeric_data, pd.Series) and not numeric_data.isna().all():
                         climate_analysis[f'{col}_stats'] = {
                             'min': float(numeric_data.min()),
                             'max': float(numeric_data.max()),
@@ -1788,12 +1792,10 @@ class UniversalReporter:
         lat_col, lon_col = coord_cols['lat'], coord_cols['lon']
         if lat_col is None or lon_col is None:
             return {'coordinate_count': 0}
-        
         try:
             # Convert to numeric, ignoring errors
             lat_numeric = pd.to_numeric(dataset[lat_col], errors='coerce')  # type: ignore
             lon_numeric = pd.to_numeric(dataset[lon_col], errors='coerce')  # type: ignore
-            
             return {
                 'coordinate_range': {
                     'lat_min': float(lat_numeric.min()),  # type: ignore
@@ -1812,7 +1814,6 @@ class UniversalReporter:
         lat_col, lon_col = coord_cols['lat'], coord_cols['lon']
         if lat_col is None or lon_col is None:
             return {'error': 'No coordinate columns found'}
-        
         try:
             distances = np.sqrt(
                 (dataset[lat_col] - location['lat'])**2 + 
