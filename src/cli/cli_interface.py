@@ -653,15 +653,9 @@ def analyze(location: str, data_dir: str, output: str):
         
         # Filter data for the specific location (within 1km)
         location_data = {}
-        climate_data = None
         
         for dataset_name, dataset in loaded_data.items():
-            # Always include climate data regardless of coordinates
-            if dataset_name == 'climate':
-                climate_data = dataset
-                console.print(f"✅ {dataset_name}: {len(dataset):,} records (climate data - always included)")
-                continue
-                
+            # Remove special handling for climate data
             lat_col, lon_col = find_coordinate_columns(dataset)
             if lat_col and lon_col:
                 try:
@@ -687,9 +681,9 @@ def analyze(location: str, data_dir: str, output: str):
             else:
                 console.print(f"⚠️ {dataset_name}: No coordinate data")
         
-        # Add climate data to location_data if available
-        if climate_data is not None:
-            location_data['climate'] = climate_data
+        # Do not add climate data unconditionally
+        # if climate_data is not None:
+        #     location_data['climate'] = climate_data
         
         if not location_data:
             console.print("[red]❌ No data found near the specified location[/red]")
@@ -1224,7 +1218,7 @@ def content_analyze(data_dir, output):
         
         console.print(f"\n[bold green]🎉 CONTENT ANALYSIS COMPLETE![/bold green]")
         console.print(f"✨ Analyzed {len(all_results)} datasets with AI-powered content detection")
-        
+            
     except Exception as e:
         console.print(f"[red]❌ Error during content analysis: {e}[/red]")
         logger.error(f"Content analysis error: {e}")

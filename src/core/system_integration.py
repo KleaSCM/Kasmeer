@@ -22,49 +22,49 @@ class SystemIntegration:
     # - Report Formatter (report generation)
     # - Risk Analyzer (risk scoring)
     # - Survey Analyzer (survey intelligence)
-
+    
     def __init__(self):
         # Initialize all system components
         logger.info("Initializing System Integration - Connecting all components")
-
+        
         self.universal_reporter = UniversalReporter()
         self.report_formatter = ReportFormatter()
         self.risk_analyzer = RiskAnalyzer()
         self.survey_analyzer = SurveyAnalyzer()
         self.neural_network = NeuralNetwork()
-
+        
         logger.info("System Integration initialized with all components")
-
-    def analyze_dataset_comprehensive(self, dataset: pd.DataFrame, dataset_type: Optional[str] = None,
-                                       location: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    
+    def analyze_dataset_comprehensive(self, dataset: pd.DataFrame, dataset_type: Optional[str] = None, 
+                                    location: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         # Perform a full pipeline analysis using every system component
 
         logger.info("Starting comprehensive system analysis")
-
+        
         # Step 1: Universal Reporter - base data analysis
         logger.info("Step 1: Running Universal Reporter analysis")
         universal_analysis = self.universal_reporter.analyze_dataset(dataset, dataset_type, location)
-
+        
         # Step 2: Neural Network - inference and predictions
         logger.info("Step 2: Running Neural Network predictions")
         nn_predictions = self._run_neural_network_analysis(dataset, universal_analysis)
-
+        
         # Step 3: Risk Analyzer - risk scoring and factor identification
         logger.info("Step 3: Running Risk Analysis")
         risk_analysis = self._run_risk_analysis(dataset, universal_analysis, nn_predictions)
-
+        
         # Step 4: Survey Analyzer - if applicable, suggest or evaluate surveys
         logger.info("Step 4: Running Survey Analysis")
         survey_analysis = self._run_survey_analysis(dataset, universal_analysis)
-
+        
         # Step 5: Report Formatter - aggregate results into a unified output
         logger.info("Step 5: Generating comprehensive report")
         comprehensive_report = self._generate_comprehensive_report(
             universal_analysis, nn_predictions, risk_analysis, survey_analysis
         )
-
+        
         logger.info("Comprehensive system analysis completed")
-
+        
         # Return full analysis bundle
         return {
             'universal_analysis': universal_analysis,

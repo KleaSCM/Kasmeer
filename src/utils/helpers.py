@@ -412,7 +412,7 @@ def validate_data_quality(df: pd.DataFrame, required_columns: Optional[list] = N
         logger.warning(f"High null percentage: {validation_results['null_percentage']:.1f}%")
     
     logger.info(f"Data quality validation: valid={validation_results['is_valid']}, null_percentage={validation_results['null_percentage']:.1f}%")
-    return validation_results
+    return validation_results 
 
 def find_coordinate_columns(df: pd.DataFrame) -> Tuple[Optional[str], Optional[str]]:
     """Detect latitude and longitude columns in a DataFrame."""

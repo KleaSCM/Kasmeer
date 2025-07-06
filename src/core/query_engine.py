@@ -168,13 +168,9 @@ class QueryEngine:
         
         try:
             # Get infrastructure analysis from neural network
-            # The neural network should provide infrastructure insights based on its training data
             infrastructure_prediction = self.neural_network.predict_infrastructure_analysis(
                 location['lat'], location['lon'], self.data_processor
             )
-            
-            # Extract infrastructure information from neural network output
-            # No hardcoded logic - everything comes from the trained model
             infrastructure_info = {
                 'pipe_count': infrastructure_prediction.get('pipe_count', 0),
                 'total_length': infrastructure_prediction.get('total_length', 0.0),
@@ -187,10 +183,8 @@ class QueryEngine:
                 'confidence': infrastructure_prediction.get('confidence', 0.0),
                 'data_sources': infrastructure_prediction.get('data_sources', [])
             }
-            
             # Get recommendations from neural network
             recommendations = infrastructure_prediction.get('recommendations', [])
-        
             return QueryResult(
                 query=query,
                 location=location,
@@ -198,7 +192,6 @@ class QueryEngine:
                 recommendations=recommendations,
                 confidence=infrastructure_prediction.get('confidence', 0.8)
             )
-            
         except Exception as e:
             logger.error(f"Error in infrastructure analysis: {e}")
             return QueryResult(
@@ -222,14 +215,12 @@ class QueryEngine:
                 error="Location required for environmental queries",
                 confidence=0.0
             )
-        
         try:
             # Get environmental analysis from neural network
             # The neural network should provide environmental insights based on its training data
             environmental_prediction = self.neural_network.predict_environmental_analysis(
                 location['lat'], location['lon'], self.data_processor
             )
-        
             # Extract environmental information from neural network output
             # No hardcoded logic - everything comes from the trained model
             environmental_info = {
@@ -242,10 +233,8 @@ class QueryEngine:
                 'confidence': environmental_prediction.get('confidence', 0.0),
                 'data_sources': environmental_prediction.get('data_sources', [])
             }
-        
             # Get recommendations from neural network
             recommendations = environmental_prediction.get('recommendations', [])
-            
             return QueryResult(
                 query=query,
                 location=location,
@@ -253,7 +242,6 @@ class QueryEngine:
                 recommendations=recommendations,
                 confidence=environmental_prediction.get('confidence', 0.7)
             )
-            
         except Exception as e:
             logger.error(f"Error in environmental analysis: {e}")
             return QueryResult(
@@ -332,14 +320,12 @@ class QueryEngine:
                 error="Location required for construction queries",
                 confidence=0.0
             )
-        
         try:
             # Get construction analysis from neural network
             # The neural network should provide construction planning based on its training data
             construction_prediction = self.neural_network.predict_construction_plan(
                 location['lat'], location['lon'], self.data_processor
             )
-            
             # Extract construction information from neural network output
             # No hardcoded logic - everything comes from the trained model
             construction_info = {
@@ -352,10 +338,8 @@ class QueryEngine:
                 'confidence': construction_prediction.get('confidence', 0.0),
                 'data_sources': construction_prediction.get('data_sources', [])
             }
-            
             # Get recommendations from neural network
             recommendations = construction_prediction.get('recommendations', [])
-            
             return QueryResult(
                 query=query,
                 location=location,
@@ -363,7 +347,6 @@ class QueryEngine:
                 recommendations=recommendations,
                 confidence=construction_prediction.get('confidence', 0.6)
             )
-            
         except Exception as e:
             logger.error(f"Error in construction analysis: {e}")
             return QueryResult(
@@ -387,14 +370,12 @@ class QueryEngine:
                 error="Location required for survey queries",
                 confidence=0.0
             )
-        
         try:
             # Get survey analysis from neural network
             # The neural network should provide survey recommendations based on its training data
             survey_prediction = self.neural_network.predict_survey_requirements(
                 location['lat'], location['lon'], self.data_processor
             )
-        
             # Extract survey information from neural network output
             # No hardcoded logic - everything comes from the trained model
             survey_info = {
@@ -407,10 +388,8 @@ class QueryEngine:
                 'confidence': survey_prediction.get('confidence', 0.0),
                 'data_gaps': survey_prediction.get('data_gaps', [])
             }
-            
             # Get recommendations from neural network
             recommendations = survey_prediction.get('recommendations', [])
-            
             return QueryResult(
                 query=query,
                 location=location,
@@ -418,7 +397,6 @@ class QueryEngine:
                 recommendations=recommendations,
                 confidence=survey_prediction.get('confidence', 0.5)
             )
-            
         except Exception as e:
             logger.error(f"Error in survey analysis: {e}")
             return QueryResult(

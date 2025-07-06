@@ -67,6 +67,9 @@ class UniversalReporter:
         # Load content analysis results if available
         self.content_analysis_results = self._load_content_analysis_results()
         
+        # Add caching for content intelligence to avoid redundant calls
+        self._content_intelligence_cache = {}
+        
         logger.info("Universal Reporter initialized with modular analyzers and content intelligence")
     
     def _load_content_analysis_results(self) -> Dict[str, Any]:
@@ -102,28 +105,31 @@ class UniversalReporter:
         """
         logger.info(f"Generating Civil Engineer's Site Briefing for dataset with {len(dataset)} records")
         
-        # Get content intelligence for smart analysis routing
+        # Get content intelligence ONCE to avoid redundant calls
         content_intelligence = self._get_content_intelligence(dataset, dataset_type)
         
-        # Always analyze climate data if present
-        climate_context = self._extract_climate_context(dataset)
+        # Only analyze climate data if this is a climate dataset
+        if dataset_type == 'climate':
+            climate_context = self._extract_climate_context(dataset)
+        else:
+            climate_context = {}
         
         # Initialize comprehensive analysis using modular analyzers with content-aware routing
         briefing = {
             'executive_summary': self._generate_executive_summary(dataset, location, content_intelligence),
             'content_intelligence': content_intelligence,
-            'site_materials': self._analyze_with_content_awareness(dataset, 'construction', lambda d: self.construction_analyzer.analyze(d)['site_materials']),
-            'work_history': self._analyze_with_content_awareness(dataset, 'construction', lambda d: self.construction_analyzer.analyze(d)['work_history']),
-            'utilities_infrastructure': self._analyze_with_content_awareness(dataset, 'infrastructure', lambda d: self.infrastructure_analyzer.analyze(d)['utilities_infrastructure']),
+            'site_materials': self._analyze_with_content_awareness(dataset, 'construction', lambda d: self.construction_analyzer.analyze(d)['site_materials'], content_intelligence),
+            'work_history': self._analyze_with_content_awareness(dataset, 'construction', lambda d: self.construction_analyzer.analyze(d)['work_history'], content_intelligence),
+            'utilities_infrastructure': self._analyze_with_content_awareness(dataset, 'infrastructure', lambda d: self.infrastructure_analyzer.analyze(d)['utilities_infrastructure'], content_intelligence),
             'environmental_context': self._merge_environmental_and_climate(dataset, climate_context),
-            'costs_funding': self._analyze_with_content_awareness(dataset, 'financial', lambda d: self.financial_analyzer.analyze(d)['costs_funding']),
+            'costs_funding': self._analyze_with_content_awareness(dataset, 'financial', lambda d: self.financial_analyzer.analyze(d)['costs_funding'], content_intelligence),
             'risks_hazards': self._analyze_risks_hazards(dataset, content_intelligence),
             'missing_data': self._identify_missing_data(dataset, content_intelligence),
             'recommendations': self._generate_actionable_recommendations(dataset, location, content_intelligence),
             'nn_insights': self._get_neural_network_insights(dataset, location, content_intelligence),
-            'survey_analysis': self._analyze_with_content_awareness(dataset, 'survey', lambda d: self.survey_analyzer.analyze(d)),
-            'spatial_analysis': self._analyze_with_content_awareness(dataset, 'spatial', lambda d: self.spatial_analyzer.analyze(d, location=location)['spatial_analysis']),
-            'temporal_analysis': self._analyze_with_content_awareness(dataset, 'temporal', lambda d: self.temporal_analyzer.analyze(d)['temporal_analysis']),
+            'survey_analysis': self._analyze_with_content_awareness(dataset, 'survey', lambda d: self.survey_analyzer.analyze(d), content_intelligence),
+            'spatial_analysis': self._analyze_with_content_awareness(dataset, 'spatial', lambda d: self.spatial_analyzer.analyze(d, location=location)['spatial_analysis'], content_intelligence),
+            'temporal_analysis': self._analyze_with_content_awareness(dataset, 'temporal', lambda d: self.temporal_analyzer.analyze(d)['temporal_analysis'], content_intelligence),
             'cross_dataset_analysis': self._get_cross_dataset_analysis(dataset, location, content_intelligence)
         }
         
@@ -131,31 +137,48 @@ class UniversalReporter:
         return briefing
     
     def _get_content_intelligence(self, dataset: pd.DataFrame, dataset_type: Optional[str] = None) -> Dict[str, Any]:
-        """Get content intelligence for smart analysis routing"""
+        """Get content intelligence for smart analysis routing with caching"""
+        # Create a simple cache key based on dataset shape and type
+        cache_key = f"{len(dataset)}_{len(dataset.columns)}_{dataset_type or 'unknown'}"
+        
+        # Check cache first
+        if cache_key in self._content_intelligence_cache:
+            return self._content_intelligence_cache[cache_key]
+        
         if not self.content_analysis_available:
-            return {'content_type': 'unknown', 'confidence': 0.0, 'tags': []}
+            result = {'content_type': 'unknown', 'confidence': 0.0, 'tags': []}
+            self._content_intelligence_cache[cache_key] = result
+            return result
         
         try:
             # Use content analyzer to get dataset intelligence
             content_analysis = self.content_analyzer.analyze_content(dataset, dataset_type or 'unknown')
             tagging_result = self.smart_tagger.auto_tag_dataset(dataset, dataset_type or 'unknown')
             
-            return {
+            result = {
                 'content_type': content_analysis.get('content_type', 'unknown'),
                 'confidence': tagging_result.get('confidence', 0.0),
                 'tags': tagging_result.get('tags', []),
                 'content_analysis': content_analysis,
                 'tagging_result': tagging_result
             }
+            
+            # Cache the result
+            self._content_intelligence_cache[cache_key] = result
+            return result
+            
         except Exception as e:
             logger.warning(f"Content intelligence analysis failed: {e}")
-            return {'content_type': 'unknown', 'confidence': 0.0, 'tags': []}
+            result = {'content_type': 'unknown', 'confidence': 0.0, 'tags': []}
+            self._content_intelligence_cache[cache_key] = result
+            return result
     
-    def _analyze_with_content_awareness(self, dataset: pd.DataFrame, analysis_type: str, analyzer_func) -> Dict[str, Any]:
+    def _analyze_with_content_awareness(self, dataset: pd.DataFrame, analysis_type: str, analyzer_func, content_intelligence: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Analyze dataset with content awareness for optimal routing"""
         try:
-            # Get content intelligence
-            content_intelligence = self._get_content_intelligence(dataset)
+            # Get content intelligence if not provided
+            if content_intelligence is None:
+                content_intelligence = self._get_content_intelligence(dataset)
             content_type = content_intelligence.get('content_type', 'unknown')
             
             # Check if this analysis type is relevant for the content type
@@ -1399,18 +1422,24 @@ class UniversalReporter:
             return {}
 
     def _merge_environmental_and_climate(self, dataset: pd.DataFrame, climate_context: dict) -> dict:
-        """Merge environmental context with climate data, ensuring climate is always present if available"""
-        # Use the normal environmental analyzer
+        """Merge environmental context with climate data, but only if climate_context is not empty"""
         try:
             env_context = self.environmental_analyzer.analyze(dataset)['environmental_context']
         except Exception as e:
             logger.warning(f"Environmental context extraction failed: {e}")
             env_context = {}
-        # Merge climate data
+        
+        # Only merge climate data if present (i.e., for climate datasets)
         if climate_context and 'climate_data' in climate_context:
-            env_context['climate_data'] = climate_context['climate_data']
+            if 'climate_data' not in env_context:
+                env_context['climate_data'] = {}
+            env_context['climate_data'].update(climate_context['climate_data'])
             if 'summary' in climate_context:
                 if 'summary' not in env_context:
                     env_context['summary'] = []
-                env_context['summary'].extend([s for s in climate_context['summary'] if s not in env_context['summary']])
+                for climate_summary in climate_context['summary']:
+                    if climate_summary not in env_context['summary']:
+                        env_context['summary'].append(climate_summary)
+            if env_context['climate_data']:
+                env_context['summary'].append("Climate data: Available and analyzed")
         return env_context

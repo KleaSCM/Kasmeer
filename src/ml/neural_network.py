@@ -115,7 +115,7 @@ class CivilEngineeringSystem:
             
             if not high_quality_data:
                 logger.warning("No high-quality datasets with coordinates found")
-                return np.array([]), np.array([])
+            return np.array([]), np.array([])
             
             logger.info(f"Processing {len(high_quality_data)} high-quality datasets")
             
@@ -147,7 +147,6 @@ class CivilEngineeringSystem:
                         labels_list.append(labels)
                         
                         logger.info(f"Extracted {len(numeric_features)} features from {name}")
-                
                 except Exception as e:
                     logger.warning(f"Error extracting features from {name}: {e}")
             
@@ -1818,7 +1817,7 @@ class CivilEngineeringSystem:
             # TODO: Include model performance metrics
             summary['model_architecture'] = str(self.model)
         
-        return summary
+        return summary 
 
     def _create_feature_vector(self, features: dict, feature_type: str = 'generic') -> np.ndarray:
         """
