@@ -1,0 +1,295 @@
+# Author: KleaSCM
+# Date: 2024
+# Description: System Integration - Connects Universal Reporter to the rest of the system
+
+import pandas as pd
+from typing import Dict, List, Optional, Any
+import logging
+from .universal_reporter import UniversalReporter
+from .report_formatter import ReportFormatter
+from .risk_analyzer import RiskAnalyzer
+from .survey_analyzer import SurveyAnalyzer
+from ..ml.neural_network import NeuralNetwork
+from ..utils.logging_utils import setup_logging
+
+logger = setup_logging(__name__)
+
+class SystemIntegration:
+    """
+    System Integration - The central hub that connects all components.
+    
+    This module integrates:
+    - Universal Reporter (comprehensive data analysis)
+    - Neural Network (AI predictions)
+    - Report Formatter (output generation)
+    - Risk Analyzer (risk assessment)
+    - Survey Analyzer (survey processing)
+    """
+    
+    def __init__(self):
+        """Initialize the integrated system"""
+        logger.info("Initializing System Integration - Connecting all components")
+        
+        # Initialize all components
+        self.universal_reporter = UniversalReporter()
+        self.report_formatter = ReportFormatter()
+        self.risk_analyzer = RiskAnalyzer()
+        self.survey_analyzer = SurveyAnalyzer()
+        self.neural_network = NeuralNetwork()
+        
+        logger.info("System Integration initialized with all components")
+    
+    def analyze_dataset_comprehensive(self, dataset: pd.DataFrame, dataset_type: Optional[str] = None, 
+                                    location: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """
+        Perform comprehensive analysis using all system components.
+        
+        Args:
+            dataset: The dataset to analyze
+            dataset_type: Optional dataset type hint
+            location: Optional location context
+            
+        Returns:
+            Comprehensive analysis results from all components
+        """
+        logger.info("Starting comprehensive system analysis")
+        
+        # Step 1: Universal Reporter Analysis
+        logger.info("Step 1: Running Universal Reporter analysis")
+        universal_analysis = self.universal_reporter.analyze_dataset(dataset, dataset_type, location)
+        
+        # Step 2: Neural Network Predictions
+        logger.info("Step 2: Running Neural Network predictions")
+        nn_predictions = self._run_neural_network_analysis(dataset, universal_analysis)
+        
+        # Step 3: Risk Analysis
+        logger.info("Step 3: Running Risk Analysis")
+        risk_analysis = self._run_risk_analysis(dataset, universal_analysis, nn_predictions)
+        
+        # Step 4: Survey Analysis (if applicable)
+        logger.info("Step 4: Running Survey Analysis")
+        survey_analysis = self._run_survey_analysis(dataset, universal_analysis)
+        
+        # Step 5: Generate Comprehensive Report
+        logger.info("Step 5: Generating comprehensive report")
+        comprehensive_report = self._generate_comprehensive_report(
+            universal_analysis, nn_predictions, risk_analysis, survey_analysis
+        )
+        
+        logger.info("Comprehensive system analysis completed")
+        
+        return {
+            'universal_analysis': universal_analysis,
+            'neural_network_predictions': nn_predictions,
+            'risk_analysis': risk_analysis,
+            'survey_analysis': survey_analysis,
+            'comprehensive_report': comprehensive_report,
+            'system_summary': self._generate_system_summary(
+                universal_analysis, nn_predictions, risk_analysis, survey_analysis
+            )
+        }
+    
+    def _run_neural_network_analysis(self, dataset: pd.DataFrame, universal_analysis: Dict[str, Any]) -> Dict[str, Any]:
+        """Run neural network analysis using Universal Reporter insights"""
+        try:
+            # Extract features from Universal Reporter analysis
+            features = self._extract_features_for_nn(dataset, universal_analysis)
+            
+            # Run neural network predictions
+            predictions = self.neural_network.predict(features)
+            
+            # Enhance predictions with Universal Reporter context
+            enhanced_predictions = self._enhance_predictions_with_context(predictions, universal_analysis)
+            
+            return {
+                'predictions': enhanced_predictions,
+                'confidence_scores': self.neural_network.get_confidence_scores(),
+                'feature_importance': self.neural_network.get_feature_importance(),
+                'model_performance': self.neural_network.get_performance_metrics()
+            }
+        except Exception as e:
+            logger.warning(f"Neural network analysis failed: {e}")
+            return {
+                'predictions': {},
+                'confidence_scores': {},
+                'feature_importance': {},
+                'model_performance': {},
+                'error': str(e)
+            }
+    
+    def _run_risk_analysis(self, dataset: pd.DataFrame, universal_analysis: Dict[str, Any], 
+                          nn_predictions: Dict[str, Any]) -> Dict[str, Any]:
+        """Run risk analysis using Universal Reporter and Neural Network insights"""
+        try:
+            # Combine Universal Reporter risk assessment with Neural Network predictions
+            combined_risk_data = {
+                'universal_risks': universal_analysis.get('risk_assessment', {}),
+                'nn_predictions': nn_predictions.get('predictions', {}),
+                'dataset': dataset
+            }
+            
+            risk_results = self.risk_analyzer.analyze_risks(combined_risk_data)
+            
+            return risk_results
+        except Exception as e:
+            logger.warning(f"Risk analysis failed: {e}")
+            return {
+                'risk_scores': {},
+                'risk_factors': {},
+                'mitigation_strategies': {},
+                'error': str(e)
+            }
+    
+    def _run_survey_analysis(self, dataset: pd.DataFrame, universal_analysis: Dict[str, Any]) -> Dict[str, Any]:
+        """Run survey analysis if survey data is detected"""
+        try:
+            # Check if dataset contains survey-like data
+            if self._is_survey_data(dataset):
+                survey_results = self.survey_analyzer.analyze_survey(dataset)
+                return survey_results
+            else:
+                return {
+                    'survey_analysis': 'No survey data detected',
+                    'survey_metrics': {},
+                    'survey_insights': []
+                }
+        except Exception as e:
+            logger.warning(f"Survey analysis failed: {e}")
+            return {
+                'survey_analysis': 'Analysis failed',
+                'survey_metrics': {},
+                'survey_insights': [],
+                'error': str(e)
+            }
+    
+    def _generate_comprehensive_report(self, universal_analysis: Dict[str, Any], 
+                                     nn_predictions: Dict[str, Any], 
+                                     risk_analysis: Dict[str, Any], 
+                                     survey_analysis: Dict[str, Any]) -> Dict[str, Any]:
+        """Generate comprehensive report using Report Formatter"""
+        try:
+            # Prepare all analysis results for report formatting
+            report_data = {
+                'universal_analysis': universal_analysis,
+                'neural_network_predictions': nn_predictions,
+                'risk_analysis': risk_analysis,
+                'survey_analysis': survey_analysis
+            }
+            
+            # Generate comprehensive report
+            comprehensive_report = self.report_formatter.format_comprehensive_report(report_data)
+            
+            return comprehensive_report
+        except Exception as e:
+            logger.warning(f"Report generation failed: {e}")
+            return {
+                'report_sections': {},
+                'executive_summary': 'Report generation failed',
+                'detailed_analysis': {},
+                'recommendations': [],
+                'error': str(e)
+            }
+    
+    def _extract_features_for_nn(self, dataset: pd.DataFrame, universal_analysis: Dict[str, Any]) -> pd.DataFrame:
+        """Extract features for neural network from Universal Reporter analysis"""
+        features = dataset.copy()
+        
+        # Add Universal Reporter derived features
+        if 'infrastructure_insights' in universal_analysis:
+            infra_insights = universal_analysis['infrastructure_insights']
+            
+            # Add material diversity score
+            if 'material_analysis' in infra_insights:
+                material_data = infra_insights['material_analysis']
+                if 'material_distributions' in material_data:
+                    features['material_diversity_score'] = len(material_data['material_distributions'])
+            
+            # Add dimension statistics
+            if 'dimension_analysis' in infra_insights:
+                dim_data = infra_insights['dimension_analysis']
+                if 'dimension_statistics' in dim_data:
+                    for col, stats in dim_data['dimension_statistics'].items():
+                        features[f'{col}_normalized'] = (features[col] - stats['mean']) / stats['std']
+        
+        # Add data quality features
+        if 'data_quality' in universal_analysis:
+            quality_data = universal_analysis['data_quality']
+            features['completeness_score'] = quality_data.get('completeness_score', 0)
+            features['missing_data_percentage'] = 100 - quality_data.get('completeness_score', 0)
+        
+        return features
+    
+    def _enhance_predictions_with_context(self, predictions: Dict[str, Any], 
+                                        universal_analysis: Dict[str, Any]) -> Dict[str, Any]:
+        """Enhance neural network predictions with Universal Reporter context"""
+        enhanced_predictions = predictions.copy()
+        
+        # Add context from Universal Reporter
+        if 'infrastructure_insights' in universal_analysis:
+            enhanced_predictions['infrastructure_context'] = universal_analysis['infrastructure_insights']
+        
+        if 'environmental_insights' in universal_analysis:
+            enhanced_predictions['environmental_context'] = universal_analysis['environmental_insights']
+        
+        if 'recommendations' in universal_analysis:
+            enhanced_predictions['ai_recommendations'] = universal_analysis['recommendations']
+        
+        if 'action_items' in universal_analysis:
+            enhanced_predictions['ai_action_items'] = universal_analysis['action_items']
+        
+        return enhanced_predictions
+    
+    def _is_survey_data(self, dataset: pd.DataFrame) -> bool:
+        """Check if dataset contains survey-like data"""
+        survey_indicators = ['survey', 'question', 'response', 'rating', 'score', 'feedback', 'opinion']
+        
+        for col in dataset.columns:
+            col_lower = col.lower()
+            if any(indicator in col_lower for indicator in survey_indicators):
+                return True
+        
+        return False
+    
+    def _generate_system_summary(self, universal_analysis: Dict[str, Any], 
+                               nn_predictions: Dict[str, Any], 
+                               risk_analysis: Dict[str, Any], 
+                               survey_analysis: Dict[str, Any]) -> Dict[str, Any]:
+        """Generate system-wide summary"""
+        summary = {
+            'analysis_components': {
+                'universal_reporter': 'Completed',
+                'neural_network': 'Completed' if 'error' not in nn_predictions else 'Failed',
+                'risk_analyzer': 'Completed' if 'error' not in risk_analysis else 'Failed',
+                'survey_analyzer': 'Completed' if 'error' not in survey_analysis else 'Failed'
+            },
+            'key_insights': [],
+            'critical_findings': [],
+            'next_steps': []
+        }
+        
+        # Extract key insights from Universal Reporter
+        if 'recommendations' in universal_analysis:
+            summary['key_insights'].extend(universal_analysis['recommendations'][:3])
+        
+        # Extract critical findings from risk analysis
+        if 'risk_scores' in risk_analysis:
+            high_risks = [risk for risk, score in risk_analysis['risk_scores'].items() if score > 0.7]
+            summary['critical_findings'].extend(high_risks)
+        
+        # Generate next steps
+        if 'action_items' in universal_analysis:
+            summary['next_steps'].extend([item['action'] for item in universal_analysis['action_items'][:3]])
+        
+        return summary
+    
+    def get_system_status(self) -> Dict[str, Any]:
+        """Get the status of all system components"""
+        return {
+            'universal_reporter': 'Ready',
+            'neural_network': 'Ready',
+            'report_formatter': 'Ready',
+            'risk_analyzer': 'Ready',
+            'survey_analyzer': 'Ready',
+            'system_version': '1.0.0',
+            'integration_status': 'Active'
+        } 

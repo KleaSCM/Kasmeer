@@ -190,10 +190,10 @@ class QueryEngine:
             
             # Get recommendations from neural network
             recommendations = infrastructure_prediction.get('recommendations', [])
-            
-            return QueryResult(
-                query=query,
-                location=location,
+        
+        return QueryResult(
+            query=query,
+            location=location,
                 infrastructure_info=infrastructure_info,
                 recommendations=recommendations,
                 confidence=infrastructure_prediction.get('confidence', 0.8)
@@ -206,7 +206,7 @@ class QueryEngine:
                 location=location,
                 error=f"Error in infrastructure analysis: {str(e)}",
                 confidence=0.0
-            )
+        )
     
     def _handle_environmental_query(self, query: str, location: Optional[Dict]) -> QueryResult:
         # Handle environmental-related queries using neural network predictions
@@ -228,8 +228,8 @@ class QueryEngine:
             # The neural network should provide environmental insights based on its training data
             environmental_prediction = self.neural_network.predict_environmental_analysis(
                 location['lat'], location['lon'], self.data_processor
-            )
-            
+        )
+        
             # Extract environmental information from neural network output
             # No hardcoded logic - everything comes from the trained model
             environmental_info = {
@@ -241,8 +241,8 @@ class QueryEngine:
                 'data_completeness': environmental_prediction.get('data_completeness', 0.0),
                 'confidence': environmental_prediction.get('confidence', 0.0),
                 'data_sources': environmental_prediction.get('data_sources', [])
-            }
-            
+        }
+        
             # Get recommendations from neural network
             recommendations = environmental_prediction.get('recommendations', [])
             
@@ -256,12 +256,12 @@ class QueryEngine:
             
         except Exception as e:
             logger.error(f"Error in environmental analysis: {e}")
-            return QueryResult(
-                query=query,
-                location=location,
+        return QueryResult(
+            query=query,
+            location=location,
                 error=f"Error in environmental analysis: {str(e)}",
                 confidence=0.0
-            )
+        )
     
     def _handle_risk_query(self, query: str, location: Optional[Dict]) -> QueryResult:
         # Handle risk assessment queries using neural network predictions
@@ -342,7 +342,7 @@ class QueryEngine:
             
             # Extract construction information from neural network output
             # No hardcoded logic - everything comes from the trained model
-            construction_info = {
+        construction_info = {
                 'construction_phases': construction_prediction.get('phases', []),
                 'timeline': construction_prediction.get('timeline', {}),
                 'requirements': construction_prediction.get('requirements', []),
@@ -393,11 +393,11 @@ class QueryEngine:
             # The neural network should provide survey recommendations based on its training data
             survey_prediction = self.neural_network.predict_survey_requirements(
                 location['lat'], location['lon'], self.data_processor
-            )
-            
+        )
+        
             # Extract survey information from neural network output
             # No hardcoded logic - everything comes from the trained model
-            survey_info = {
+        survey_info = {
                 'survey_status': survey_prediction.get('status', 'unknown'),
                 'last_survey_date': survey_prediction.get('last_survey_date', 'unknown'),
                 'survey_priority': survey_prediction.get('priority', 'medium'),
