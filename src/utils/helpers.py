@@ -6,7 +6,7 @@ import logging
 import json
 import yaml
 from pathlib import Path
-from typing import Dict, Any, Optional, Union
+from typing import Dict, Any, Optional, Union, Tuple
 import pandas as pd
 import numpy as np
 from datetime import datetime
@@ -412,4 +412,103 @@ def validate_data_quality(df: pd.DataFrame, required_columns: Optional[list] = N
         logger.warning(f"High null percentage: {validation_results['null_percentage']:.1f}%")
     
     logger.info(f"Data quality validation: valid={validation_results['is_valid']}, null_percentage={validation_results['null_percentage']:.1f}%")
-    return validation_results 
+    return validation_results
+
+def find_coordinate_columns(df: pd.DataFrame) -> Tuple[Optional[str], Optional[str]]:
+    """Detect latitude and longitude columns in a DataFrame."""
+    lat_col, lon_col = None, None
+    
+    # Case-insensitive search for coordinate columns
+    for col in df.columns:
+        col_lower = col.lower()
+        if any(x in col_lower for x in ['lat', 'latitude', 'y']):
+            lat_col = col
+        if any(x in col_lower for x in ['lon', 'lng', 'longitude', 'x']):
+            lon_col = col
+    
+    return lat_col, lon_col
+
+def filter_by_location(df: pd.DataFrame, lat: float, lon: float, radius: float = 0.01, exact_match: bool = False) -> pd.DataFrame:
+    """
+    Filter DataFrame to rows within a given radius of the specified lat/lon.
+    
+    Args:
+        df: DataFrame to filter
+        lat: Latitude of target location
+        lon: Longitude of target location
+        radius: Radius in degrees (default 0.01 ~1km)
+        exact_match: If True, only return exact coordinate matches (for precise locations like houses)
+    
+    Returns:
+        Filtered DataFrame
+    """
+    import numpy as np
+    lat_col, lon_col = find_coordinate_columns(df)
+    if lat_col is None or lon_col is None:
+        logger.warning(f"No coordinate columns found in dataset. Available columns: {list(df.columns)}")
+        return pd.DataFrame()  # No spatial data
+    
+    try:
+        # Convert to numeric, ignoring errors
+        lat_vals = pd.to_numeric(df[lat_col], errors='coerce')  # type: ignore
+        lon_vals = pd.to_numeric(df[lon_col], errors='coerce')  # type: ignore
+        
+        # Remove rows with invalid coordinates
+        valid_coords = ~(lat_vals.isna() | lon_vals.isna())  # type: ignore
+        df_valid = df[valid_coords].copy()
+        lat_vals = lat_vals[valid_coords]  # type: ignore
+        lon_vals = lon_vals[valid_coords]  # type: ignore
+        
+        if df_valid.empty:
+            logger.warning("No valid coordinate data found after filtering")
+            return pd.DataFrame()
+        
+        atol = 1e-4 if exact_match else radius
+        if exact_match:
+            # Use np.isclose for robust float comparison
+            mask = np.isclose(lat_vals, lat, atol=atol) & np.isclose(lon_vals, lon, atol=atol)  # type: ignore
+            logger.info(f"Exact coordinate matching (np.isclose): looking for ({lat}, {lon}) with atol={atol}")
+        else:
+            # Approximate matching with radius
+            mask = np.isclose(lat_vals, lat, atol=radius) & np.isclose(lon_vals, lon, atol=radius)  # type: ignore
+            logger.info(f"Approximate matching (np.isclose): looking within {radius} degrees of ({lat}, {lon})")
+        
+        filtered_df = df_valid[mask].copy()
+        logger.info(f"Found {len(filtered_df)} records matching location criteria")
+        
+        return filtered_df
+        
+    except Exception as e:
+        logger.error(f"Error in location filtering: {e}")
+        return pd.DataFrame()
+
+def filter_by_exact_location(df: pd.DataFrame, lat: float, lon: float) -> pd.DataFrame:
+    """
+    Filter DataFrame to exact coordinate matches (for precise locations like houses).
+    
+    Args:
+        df: DataFrame to filter
+        lat: Exact latitude
+        lon: Exact longitude
+    
+    Returns:
+        Filtered DataFrame with exact matches only
+    """
+    return filter_by_location(df, lat, lon, radius=1e-4, exact_match=True)
+
+def filter_by_approximate_location(df: pd.DataFrame, lat: float, lon: float, radius_km: float = 1.0) -> pd.DataFrame:
+    """
+    Filter DataFrame to approximate location matches with configurable radius in kilometers.
+    
+    Args:
+        df: DataFrame to filter
+        lat: Latitude of target location
+        lon: Longitude of target location
+        radius_km: Radius in kilometers (default 1.0 km)
+    
+    Returns:
+        Filtered DataFrame
+    """
+    # Convert km to degrees (approximate: 1 degree ≈ 111 km)
+    radius_degrees = radius_km / 111.0
+    return filter_by_location(df, lat, lon, radius=radius_degrees, exact_match=False) 

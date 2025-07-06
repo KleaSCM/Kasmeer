@@ -21,16 +21,39 @@ class DatasetConfig:
     # so companies can use their own datasets without hardcoding anything
     
     @log_performance(logger)
-    def __init__(self, config_path: str = "config.yaml"):
+    def __init__(self, config_path: str = "config.yaml", data_dir: str = "DataSets"):
         # Initialize the dataset configuration system
         # Args:
         #   config_path: Path to the YAML configuration file
-        self.config_path = Path(config_path)
-        self.config = self._load_config()
-        self.data_dir = Path(self.config.get('directories', {}).get('data_dir', 'DataSets'))
+        #   data_dir: Base directory for dataset discovery and loading
+
+        # Robustly handle both config file and directory cases
+        config_path_obj = Path(config_path)
+        if config_path_obj.is_dir():
+            self.data_dir = config_path_obj.resolve()
+            self.config_path = self.data_dir / "config.yaml"
+            if self.config_path.exists():
+                self.config = self._load_config()
+            else:
+                self.config = self._get_default_config()
+        elif config_path_obj.name == "config.yaml" and config_path_obj.parent.exists():
+            self.config_path = config_path_obj.resolve()
+            self.data_dir = Path(os.path.abspath(data_dir))
+            if self.config_path.exists():
+                self.config = self._load_config()
+            else:
+                self.config = self._get_default_config()
+        else:
+            # If a file or non-existent path is given, treat as data_dir
+            self.data_dir = Path(os.path.abspath(config_path))
+            self.config_path = self.data_dir / "config.yaml"
+            if self.config_path.exists():
+                self.config = self._load_config()
+            else:
+                self.config = self._get_default_config()
         self.dataset_configs = self.config.get('datasets', {})
         self.company_config = self.config.get('company', {})
-        logger.info(f"Initialized DatasetConfig with config_path={config_path}")
+        logger.info(f"Initialized DatasetConfig with config_path={self.config_path} and data_dir={self.data_dir}")
         
     def _load_config(self) -> Dict[str, Any]:
         # Load configuration from a YAML file
@@ -76,19 +99,25 @@ class DatasetConfig:
             'datasets': {
                 'infrastructure': {
                     'enabled': True,
-                    'file_patterns': ['*infrastructure*', '*pipes*', '*drainage*'],
+                    'file_patterns': ['*infrastructure*', '*pipes*', '*drainage*', '*INF_DRN*', '*INF*'],
                     'required_columns': [],       # Dataset agnostic - no fixed schema
                     'optional_columns': []
                 },
                 'vegetation': {
                     'enabled': True,
-                    'file_patterns': ['*vegetation*', '*zones*'],
+                    'file_patterns': ['*vegetation*', '*zones*', '*VegetationZones*'],
                     'required_columns': [],
                     'optional_columns': []
                 },
                 'climate': {
                     'enabled': True,
-                    'file_patterns': ['*climate*', '*weather*'],
+                    'file_patterns': ['*climate*', '*weather*', '*tas*', '*hurs*', '*pan-evap*', '*prec*', '*srad*'],
+                    'required_columns': [],
+                    'optional_columns': []
+                },
+                'wind': {
+                    'enabled': True,
+                    'file_patterns': ['*wind*', '*wind-observations*'],
                     'required_columns': [],
                     'optional_columns': []
                 }

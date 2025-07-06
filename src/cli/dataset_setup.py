@@ -28,19 +28,25 @@ def dataset_setup():
 @click.option('--config-path', default='config.yaml', help='Path to configuration file')
 @log_performance(logger)
 def discover(config_path):
-    """Discover datasets in your data directory"""
+    # Discover datasets in your data directory using the given config file
+
     logger.info(f"Discovering datasets with config: {config_path}")
-    
+
+    # ────── Display UI introduction via Rich console ──────
     console.print(Panel.fit(
         "[bold blue]🔍 Dataset Discovery[/bold blue]\n"
         "This will scan your data directory and identify available datasets.",
         title="Kasmeer Dataset Setup"
     ))
-    
+
     try:
+        # ────── Load dataset configuration and initialize discovery engine ──────
         dataset_config = DatasetConfig(config_path)
+
+        # ────── Run the discovery process ──────
         discovered_datasets = dataset_config.discover_datasets()
-        
+
+        # ────── If no datasets were found, provide user guidance ──────
         if not discovered_datasets:
             console.print("[red]❌ No datasets found![/red]")
             console.print("\n[bold]Possible reasons:[/bold]")
@@ -49,90 +55,101 @@ def discover(config_path):
             console.print("• Files are in unsupported formats")
             console.print(f"\n[bold]Data directory:[/bold] {dataset_config.data_dir}")
             return
-        
-        # Display discovered datasets
+
+        # ────── Construct and display summary table of all discovered datasets ──────
         table = Table(title="Discovered Datasets")
         table.add_column("Dataset Type", style="cyan")
         table.add_column("Files Found", style="magenta")
         table.add_column("Status", style="green")
         table.add_column("File Types", style="yellow")
-        
+
         for dataset_type, info in discovered_datasets.items():
             files = info.get('files', [])
             file_types = list(set(f.get('file_type', 'unknown') for f in files))
             status = "✅ Ready" if info.get('enabled', True) else "❌ Disabled"
-            
+
             table.add_row(
-                dataset_type.replace('_', ' ').title(),
-                str(len(files)),
-                status,
-                ', '.join(file_types)
+                dataset_type.replace('_', ' ').title(),  # Format dataset name
+                str(len(files)),                         # Number of files
+                status,                                  # Status label
+                ', '.join(file_types)                    # Unique file types found
             )
-        
+
         console.print(table)
-        
-        # Show file details
+
+        # ────── Show a short list of actual file names for each dataset ──────
         console.print("\n[bold]File Details:[/bold]")
         for dataset_type, info in discovered_datasets.items():
             files = info.get('files', [])
             if files:
                 console.print(f"\n[cyan]{dataset_type.replace('_', ' ').title()}:[/cyan]")
-                for file_info in files[:3]:  # Show first 3 files
+                for file_info in files[:3]:  # Limit to first 3 files
                     console.print(f"  • {file_info['name']} ({file_info['file_type']})")
                 if len(files) > 3:
                     console.print(f"  • ... and {len(files) - 3} more files")
-        
+
+        # ────── Final confirmation message ──────
         console.print(f"\n[green]✅ Discovery complete! Found {len(discovered_datasets)} dataset types.[/green]")
-        
+
     except Exception as e:
+        # ────── Handle and report unexpected errors ──────
         console.print(f"[red]❌ Error during discovery: {e}[/red]")
         logger.error(f"Discovery error: {e}")
+
 
 @dataset_setup.command()
 @click.option('--config-path', default='config.yaml', help='Path to configuration file')
 @click.option('--dataset-type', help='Specific dataset type to configure')
 @log_performance(logger)
 def configure(config_path, dataset_type):
-    """Configure dataset settings interactively"""
+    # Interactively configure a dataset type using the specified config file
+    # If `--dataset-type` is provided, configures that directly; otherwise prompts user
+
     logger.info(f"Configuring datasets with config: {config_path}")
-    
+
+    # ────── Console welcome banner ──────
     console.print(Panel.fit(
         "[bold blue]⚙️ Dataset Configuration[/bold blue]\n"
         "This will help you configure your datasets for optimal processing.",
         title="Kasmeer Dataset Setup"
     ))
-    
+
     try:
+        # ────── Load dataset configuration and perform discovery ──────
         dataset_config = DatasetConfig(config_path)
         discovered_datasets = dataset_config.discover_datasets()
-        
+
+        # ────── Early exit if no datasets were discovered ──────
         if not discovered_datasets:
             console.print("[red]❌ No datasets found! Run 'discover' first.[/red]")
             return
-        
-        # Select dataset to configure
+
+        # ────── Determine which dataset type to configure ──────
         if dataset_type:
+            # If a specific dataset type is given as a CLI flag
             if dataset_type not in discovered_datasets:
                 console.print(f"[red]❌ Dataset type '{dataset_type}' not found![/red]")
                 return
             selected_datasets = [dataset_type]
         else:
-            # Let user choose
+            # Let user choose from discovered dataset types
             console.print("\n[bold]Available datasets:[/bold]")
             for i, (dt, info) in enumerate(discovered_datasets.items(), 1):
                 status = "✅" if info.get('enabled', True) else "❌"
                 console.print(f"{i}. {status} {dt.replace('_', ' ').title()}")
-            
+
+            # Prompt user to select dataset by index
             choice = Prompt.ask(
                 "\nSelect dataset to configure",
                 choices=[str(i) for i in range(1, len(discovered_datasets) + 1)]
             )
             selected_datasets = [list(discovered_datasets.keys())[int(choice) - 1]]
-        
-        # Configure each selected dataset
+
+        # ────── Loop through each selected dataset and apply configuration logic ──────
         for dt in selected_datasets:
             console.print(f"\n[bold cyan]Configuring {dt.replace('_', ' ').title()}:[/bold cyan]")
             _configure_dataset(dataset_config, dt, discovered_datasets[dt])
+
         
         # Save configuration
         if Confirm.ask("\nSave configuration changes?"):
@@ -146,47 +163,63 @@ def configure(config_path, dataset_type):
         logger.error(f"Configuration error: {e}")
 
 def _configure_dataset(dataset_config: DatasetConfig, dataset_type: str, dataset_info: Dict):
-    """Configure a specific dataset"""
+    # Interactive configuration routine for a single dataset type
+    # This updates file patterns, priority, enabled state, and column mappings (if tabular)
+    
+    # ────── Extract the current config and associated discovered files ──────
     config = dataset_info.get('config', {})
     files = dataset_info.get('files', [])
     
+    # ────── If no files were found for this dataset type, skip configuration ──────
     if not files:
         console.print(f"[yellow]⚠️ No files found for {dataset_type}[/yellow]")
         return
     
-    # Show current configuration
+    # ────── Display the current configuration to the user ──────
     console.print(f"\n[bold]Current Configuration:[/bold]")
-    console.print(f"• Enabled: {config.get('enabled', True)}")
-    console.print(f"• Priority: {config.get('priority', 999)}")
-    console.print(f"• File patterns: {', '.join(config.get('file_patterns', []))}")
-    console.print(f"• Required columns: {', '.join(config.get('required_columns', []))}")
-    
-    # Configure basic settings
+    console.print(f"• Enabled: {config.get('enabled', True)}")  # Whether this dataset is active
+    console.print(f"• Priority: {config.get('priority', 999)}")  # Lower number = higher processing priority
+    console.print(f"• File patterns: {', '.join(config.get('file_patterns', []))}")  # Glob patterns to find files
+    console.print(f"• Required columns: {', '.join(config.get('required_columns', []))}")  # Key expected columns
+
+    # ────── Ask user if this dataset should remain enabled ──────
+    # This allows them to quickly deactivate datasets that are no longer in use
     enabled = Confirm.ask(f"\nEnable {dataset_type} dataset?", default=config.get('enabled', True))
-    priority = int(Prompt.ask("Processing priority (1-10, lower = higher priority)", 
-                             default=str(config.get('priority', 999))))
-    
-    # Configure file patterns
+
+    # ────── Ask for processing priority ──────
+    # Lower numbers will be processed earlier in the pipeline (e.g., 1 = highest priority)
+    priority = int(Prompt.ask(
+        "Processing priority (1-10, lower = higher priority)",
+        default=str(config.get('priority', 999))
+    ))
+
+    # ────── Show current file pattern matchers used to discover files ──────
     console.print(f"\n[bold]File Patterns:[/bold]")
     current_patterns = config.get('file_patterns', [])
     for i, pattern in enumerate(current_patterns):
         console.print(f"{i+1}. {pattern}")
-    
+
+    # ────── Optionally let the user add a new pattern ──────
+    # This is helpful if the user sees that their files weren’t matched correctly
     if Confirm.ask("Add new file patterns?"):
         new_pattern = Prompt.ask("Enter file pattern (e.g., '*my_data*')")
         if new_pattern:
             current_patterns.append(new_pattern)
-    
-    # Configure column mappings
+
+    # ────── Check if the dataset is tabular (CSV or Excel) ──────
+    # If so, allow configuring column mappings (required/optional columns, etc.)
     if files and files[0].get('file_type') == 'tabular':
         _configure_column_mappings(dataset_config, dataset_type, files[0])
-    
-    # Update configuration
+
+    # ────── Update the dataset config object in memory ──────
     config.update({
         'enabled': enabled,
         'priority': priority,
         'file_patterns': current_patterns
     })
+
+    # (Optional: Could persist this update to disk here if needed)
+
 
 def _configure_column_mappings(dataset_config: DatasetConfig, dataset_type: str, file_info: Dict):
     """Configure column mappings for tabular data"""

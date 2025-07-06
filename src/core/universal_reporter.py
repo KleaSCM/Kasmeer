@@ -487,21 +487,27 @@ class UniversalReporter:
         matching_cols = []
         for col in dataset.columns:
             col_lower = col.lower()
-            if any(pattern in col_lower for pattern in patterns):
+            # Check for exact matches and partial matches
+            if any(pattern.lower() in col_lower for pattern in patterns):
+                matching_cols.append(col)
+            # Also check for common variations
+            elif any(pattern.lower().replace('_', '') in col_lower.replace('_', '') for pattern in patterns):
                 matching_cols.append(col)
         return matching_cols
     
     def _find_coordinate_columns(self, dataset: pd.DataFrame) -> Dict[str, Optional[str]]:
-        """Find coordinate columns"""
+        """Find coordinate columns with improved detection"""
         coord_patterns = self.spatial_patterns['coordinates']
         lat_col = None
         lon_col = None
         
         for col in dataset.columns:
             col_lower = col.lower()
-            if any(pattern in col_lower for pattern in ['lat', 'latitude', 'y']):
+            # Check for latitude patterns
+            if any(pattern in col_lower for pattern in ['lat', 'latitude', 'y', 'northing']):
                 lat_col = col
-            elif any(pattern in col_lower for pattern in ['lon', 'longitude', 'x']):
+            # Check for longitude patterns  
+            elif any(pattern in col_lower for pattern in ['lon', 'longitude', 'x', 'easting']):
                 lon_col = col
         
         return {'lat': lat_col, 'lon': lon_col}
@@ -539,7 +545,9 @@ class UniversalReporter:
         materials = {}
         for col in material_cols:
             if col in dataset.columns:
-                materials[col] = dataset[col].value_counts().to_dict()
+                # Get actual material distribution
+                material_counts = dataset[col].value_counts()
+                materials[col] = material_counts.to_dict()
         return {'material_distributions': materials}
     
     def _analyze_dimensions(self, dataset: pd.DataFrame, dimension_cols: List[str]) -> Dict[str, Any]:
@@ -548,12 +556,16 @@ class UniversalReporter:
         for col in dimension_cols:
             if col in dataset.columns and dataset[col].dtype in ['int64', 'float64']:
                 try:
-                    dimensions[col] = {
-                        'min': float(dataset[col].min()),
-                        'max': float(dataset[col].max()),
-                        'mean': float(dataset[col].mean()),
-                        'std': float(dataset[col].std())
-                    }
+                    # Convert to numeric and get actual statistics
+                    numeric_data = pd.to_numeric(dataset[col], errors='coerce')
+                    if not numeric_data.isna().all():
+                        dimensions[col] = {
+                            'min': float(numeric_data.min()),
+                            'max': float(numeric_data.max()),
+                            'mean': float(numeric_data.mean()),
+                            'std': float(numeric_data.std()),
+                            'median': float(numeric_data.median())
+                        }
                 except Exception as e:
                     logger.warning(f"Dimension analysis failed for column {col}: {e}")
         return {'dimension_statistics': dimensions}
@@ -572,11 +584,51 @@ class UniversalReporter:
     
     def _analyze_vegetation(self, dataset: pd.DataFrame, vegetation_cols: List[str]) -> Dict[str, Any]:
         """Analyze vegetation data"""
-        return {'vegetation_zones': len(dataset), 'vegetation_columns': vegetation_cols}
+        vegetation_analysis = {
+            'vegetation_zones': len(dataset),
+            'vegetation_columns': vegetation_cols
+        }
+        
+        # Add actual vegetation statistics if available
+        for col in vegetation_cols:
+            if col in dataset.columns and dataset[col].dtype in ['int64', 'float64']:
+                try:
+                    numeric_data = pd.to_numeric(dataset[col], errors='coerce')
+                    if not numeric_data.isna().all():
+                        vegetation_analysis[f'{col}_stats'] = {
+                            'min': float(numeric_data.min()),
+                            'max': float(numeric_data.max()),
+                            'mean': float(numeric_data.mean()),
+                            'std': float(numeric_data.std())
+                        }
+                except Exception as e:
+                    logger.warning(f"Vegetation analysis failed for column {col}: {e}")
+        
+        return vegetation_analysis
     
     def _analyze_climate(self, dataset: pd.DataFrame, climate_cols: List[str]) -> Dict[str, Any]:
         """Analyze climate data"""
-        return {'climate_stations': len(dataset), 'climate_columns': climate_cols}
+        climate_analysis = {
+            'climate_stations': len(dataset),
+            'climate_columns': climate_cols
+        }
+        
+        # Add actual climate statistics if available
+        for col in climate_cols:
+            if col in dataset.columns and dataset[col].dtype in ['int64', 'float64']:
+                try:
+                    numeric_data = pd.to_numeric(dataset[col], errors='coerce')
+                    if not numeric_data.isna().all():
+                        climate_analysis[f'{col}_stats'] = {
+                            'min': float(numeric_data.min()),
+                            'max': float(numeric_data.max()),
+                            'mean': float(numeric_data.mean()),
+                            'std': float(numeric_data.std())
+                        }
+                except Exception as e:
+                    logger.warning(f"Climate analysis failed for column {col}: {e}")
+        
+        return climate_analysis
     
     def _analyze_projects(self, dataset: pd.DataFrame, project_cols: List[str]) -> Dict[str, Any]:
         """Analyze project data"""

@@ -27,15 +27,18 @@ class DataProcessor:
     # TODO: Add support for real-time data sources
     
     @log_performance(logger)
-    def __init__(self, config_path: str = "config.yaml"):
-        # Initialize the universal data processor
-        # Args:
-        #   config_path: Path to the configuration file
-        self.dataset_config = DatasetConfig(config_path)
-        self.data_dir = self.dataset_config.data_dir
+    def __init__(self, data_dir: str):
+        # Always resolve to absolute path
+        self.data_dir = os.path.abspath(data_dir)
+        from ..core.dataset_config import DatasetConfig
+        # Patch: If data_dir is a directory, pass as both config_path and data_dir
+        if os.path.isdir(self.data_dir):
+            self.config = DatasetConfig(self.data_dir, self.data_dir)
+        else:
+            self.config = DatasetConfig(self.data_dir)
         self.processed_data = {}  # Store loaded and processed datasets
         self.discovered_datasets = {}  # Store discovered dataset metadata
-        logger.info(f"Initialized DataProcessor with config_path={config_path}")
+        logger.info(f"Initialized DataProcessor with config_path={self.data_dir}")
         
     @log_performance(logger)
     def discover_and_load_all_data(self) -> Dict[str, Any]:
@@ -48,7 +51,7 @@ class DataProcessor:
         logger.info("Discovering and loading all available datasets")
         
         # Discover datasets using configuration patterns
-        self.discovered_datasets = self.dataset_config.discover_datasets()
+        self.discovered_datasets = self.config.discover_datasets()
         logger.info(f"Discovered {len(self.discovered_datasets)} dataset types")
         
         # Load each discovered dataset that is enabled
@@ -116,10 +119,10 @@ class DataProcessor:
             
             # Apply column mappings
             original_columns = list(df.columns)
-            mapped_columns = self.dataset_config.map_column_names(original_columns)
+            mapped_columns = self.config.map_column_names(original_columns)
             
             # Rename columns if mappings exist
-            column_mappings = self.dataset_config.company_config.get('data_mappings', {}).get('column_mappings', {})
+            column_mappings = self.config.company_config.get('data_mappings', {}).get('column_mappings', {})
             if column_mappings:
                 df = df.rename(columns=column_mappings)
             
@@ -178,7 +181,7 @@ class DataProcessor:
             gdf = gdf  # type: gpd.GeoDataFrame
             
             # Apply column mappings if configured
-            column_mappings = self.dataset_config.company_config.get('data_mappings', {}).get('column_mappings', {})
+            column_mappings = self.config.company_config.get('data_mappings', {}).get('column_mappings', {})
             if column_mappings:
                 gdf = gdf.rename(columns=column_mappings)  # type: ignore
             
@@ -257,7 +260,7 @@ class DataProcessor:
             return df
         
         # Check if coordinates already exist
-        coordinate_cols = self.dataset_config.find_coordinate_columns(list(df.columns))
+        coordinate_cols = self.config.find_coordinate_columns(list(df.columns))
         if coordinate_cols['lat'] and coordinate_cols['lon']:
             logger.debug(f"Coordinates already exist for {dataset_type}")
             return df
