@@ -87,129 +87,262 @@ class CivilEngineeringSystem:
         return model
     
     def prepare_features(self, data_processor) -> Tuple[np.ndarray, np.ndarray]:
-        # Prepare features from the data processor
-        infra_df = data_processor.processed_data.get('infrastructure', pd.DataFrame())
-        if infra_df.empty:
-            logger.warning("No infrastructure data available")
-            return np.array([]), np.array([])
+        """Prepare features from all available datasets"""
+        logger.info("Preparing features from all available datasets")
+        
         features = []
         targets = []
-        # Dynamically sample locations from the infrastructure data
-        if 'latitude' in infra_df.columns and 'longitude' in infra_df.columns:
-            sample_points = infra_df[['latitude', 'longitude']].drop_duplicates().sample(n=min(10, len(infra_df)), random_state=42)
-            for _, row in sample_points.iterrows():
-                lat, lon = row['latitude'], row['longitude']
-                location_features = data_processor.extract_features_at_location(lat, lon)
-                feature_vector = self._features_to_vector(location_features)
-                if feature_vector is not None:
-                    features.append(feature_vector)
-                    target = self._generate_risk_targets_from_data(location_features)
-                    targets.append(target)
-        if not features:
-            logger.warning("No valid features extracted")
+        
+        # Get all loaded datasets
+        loaded_data = data_processor.discover_and_load_all_data()
+        
+        if not loaded_data:
+            logger.warning("No datasets loaded")
             return np.array([]), np.array([])
+        
+        # Process each dataset to extract features
+        for dataset_name, dataset in loaded_data.items():
+            if len(dataset) == 0:
+                continue
+                
+            logger.info(f"Processing {dataset_name} dataset with {len(dataset)} records")
+            
+            # Extract features from this dataset
+            dataset_features = self._extract_features_from_dataset(dataset, dataset_name)
+            
+            if dataset_features:
+                features.extend(dataset_features)
+                # Generate targets for each feature vector
+                for _ in dataset_features:
+                    target = self._generate_target_from_dataset(dataset_name, dataset)
+                    targets.append(target)
+        
+        if not features:
+            logger.warning("No valid features extracted from any dataset")
+            return np.array([]), np.array([])
+        
+        # Convert to numpy arrays
         X = np.array(features)
         y = np.array(targets)
-        self.feature_names = [f"feature_{i}" for i in range(X.shape[1])]
+        
+        logger.info(f"Extracted {len(features)} feature vectors with {X.shape[1]} features each")
+        logger.info(f"Generated {len(targets)} target vectors with {y.shape[1]} targets each")
+        
         return X, y
     
-    def _generate_risk_targets_from_data(self, features: Dict) -> np.ndarray:
-        # Generate risk targets based on neural network analysis of available data
-        # Args:
-        #   features: Dictionary of extracted features
-        # Returns: Array of risk scores based on data patterns
-        # This method uses learned patterns from the datasets to generate realistic risk scores
-        # instead of hardcoded values or random numbers
-        logger.debug("Generating risk targets from data patterns")
+    def _extract_features_from_dataset(self, dataset: pd.DataFrame, dataset_name: str) -> List[np.ndarray]:
+        """Extract features from a specific dataset"""
+        features = []
         
         try:
-            # Initialize risk scores based on data availability and quality
-            environmental_risk = 0.0
-            infrastructure_risk = 0.0
-            construction_risk = 0.0
+            # Get coordinate columns
+            lat_col, lon_col = self._find_coordinate_columns(dataset)
             
-            # Calculate environmental risk based on climate and vegetation data
-            if features.get('climate'):
-                climate_data = features['climate']
-                # Use actual climate data to assess environmental risk
-                if climate_data.get('precipitation', 0) > 100:
-                    environmental_risk += 0.3
-                if climate_data.get('temperature_avg', 0) > 30:
-                    environmental_risk += 0.2
-                if climate_data.get('climate_zone') == 'extreme':
-                    environmental_risk += 0.4
+            if lat_col and lon_col:
+                # Convert coordinates to numeric
+                lat_vals = pd.to_numeric(dataset[lat_col], errors='coerce')
+                lon_vals = pd.to_numeric(dataset[lon_col], errors='coerce')
+                
+                # Get valid coordinates
+                valid_mask = ~np.logical_or(pd.isna(lat_vals), pd.isna(lon_vals))
+                valid_data = dataset[valid_mask]
+                
+                if len(valid_data) == 0:
+                    return features
+                
+                # Sample up to 50 points to avoid too many features
+                sample_size = min(50, len(valid_data))
+                sample_data = valid_data.sample(n=sample_size, random_state=42)
+                
+                for _, row in sample_data.iterrows():
+                    feature_vector = self._create_feature_vector(row, dataset_name)
+                    if feature_vector is not None:
+                        features.append(feature_vector)
+            else:
+                # No coordinates, create features from the data itself
+                sample_size = min(20, len(dataset))
+                sample_data = dataset.sample(n=sample_size, random_state=42)
+                
+                for _, row in sample_data.iterrows():
+                    feature_vector = self._create_feature_vector(row, dataset_name)
+                    if feature_vector is not None:
+                        features.append(feature_vector)
+                        
+        except Exception as e:
+            logger.warning(f"Error extracting features from {dataset_name}: {e}")
+        
+        return features
+    
+    def _create_feature_vector(self, row: pd.Series, dataset_name: str) -> Optional[np.ndarray]:
+        feature_vector = []
+        # Helper to safely convert to float
+        def safe_float(val):
+            try:
+                if val is None or (isinstance(val, (pd.Series, np.ndarray)) and val.size == 0):
+                    return 0.0
+                if isinstance(val, (pd.Series, np.ndarray)):
+                    val = val.item() if val.size == 1 else 0.0
+                return float(val) if pd.notna(val) else 0.0
+            except Exception:
+                return 0.0
+        # Numeric and categorical features
+        for col, value in row.items():
+            if isinstance(value, (pd.Series, np.ndarray)):
+                value = value.item() if hasattr(value, 'item') and value.size == 1 else None
+            if value is not None and pd.notna(value):
+                if pd.api.types.is_numeric_dtype(type(value)):
+                    feature_vector.append(safe_float(value))
+                elif isinstance(value, str):
+                    feature_vector.append(hash(value) % 1000)
+                else:
+                    feature_vector.append(0.0)
+            else:
+                feature_vector.append(0.0)
+        # Dataset-specific features
+        if dataset_name == 'construction':
+            feature_vector.extend([
+                safe_float(row.get('Construction Award', 0)),
+                1.0 if 'structural' in str(row.get('Project Description', '')).lower() else 0.0,
+                1.0 if 'electrical' in str(row.get('Project Description', '')).lower() else 0.0,
+                1.0 if 'plumbing' in str(row.get('Project Description', '')).lower() else 0.0,
+            ])
+        elif dataset_name == 'infrastructure':
+            feature_vector.extend([
+                safe_float(row.get('Home Broadband Adoption (Percentage of  Households)', 0)),
+                safe_float(row.get('Mobile Broadband Adoption (Percentage of Households)', 0)),
+                safe_float(row.get('Public Computer Center Count', 0)),
+                safe_float(row.get('Public Wi-Fi Count', 0)),
+                safe_float(row.get('Poles Reserved by Mobile Telecom Franchisee', 0)),
+            ])
+        elif dataset_name == 'climate':
+            feature_vector.extend([
+                safe_float(row.get('tempc', 0)),
+                safe_float(row.get('rh', 0)),
+                1.0 if row.get('ampm', '') == 'PM' else 0.0,
+                safe_float(row.get('month', 0)),
+                safe_float(row.get('quadrant', 0)),
+            ])
+        # Pad or trim to 20 features
+        while len(feature_vector) < 20:
+            feature_vector.append(0.0)
+        if len(feature_vector) > 20:
+            feature_vector = feature_vector[:20]
+        return np.array(feature_vector, dtype=np.float32)
+    
+    def _get_dataset_specific_features(self, row: pd.Series, dataset_name: str) -> List[float]:
+        # Helper to safely convert to float
+        def safe_float(val):
+            try:
+                if val is None or (isinstance(val, (pd.Series, np.ndarray)) and getattr(val, 'size', 1) == 0):
+                    return 0.0
+                if isinstance(val, (pd.Series, np.ndarray)):
+                    val = val.item() if getattr(val, 'size', 1) == 1 else 0.0
+                return float(val) if pd.notna(val) else 0.0
+            except Exception:
+                return 0.0
+        features = []
+        if dataset_name == 'construction':
+            features.extend([
+                safe_float(row.get('Construction Award', 0)),
+                1.0 if 'structural' in str(row.get('Project Description', '')).lower() else 0.0,
+                1.0 if 'electrical' in str(row.get('Project Description', '')).lower() else 0.0,
+                1.0 if 'plumbing' in str(row.get('Project Description', '')).lower() else 0.0,
+            ])
+        elif dataset_name == 'infrastructure':
+            features.extend([
+                safe_float(row.get('Home Broadband Adoption (Percentage of  Households)', 0)),
+                safe_float(row.get('Mobile Broadband Adoption (Percentage of Households)', 0)),
+                safe_float(row.get('Public Computer Center Count', 0)),
+                safe_float(row.get('Public Wi-Fi Count', 0)),
+                safe_float(row.get('Poles Reserved by Mobile Telecom Franchisee', 0)),
+            ])
+        elif dataset_name == 'climate':
+            features.extend([
+                safe_float(row.get('tempc', 0)),
+                safe_float(row.get('rh', 0)),
+                1.0 if row.get('ampm', '') == 'PM' else 0.0,
+                safe_float(row.get('month', 0)),
+                safe_float(row.get('quadrant', 0)),
+            ])
+        return features
+    
+    def _generate_target_from_dataset(self, dataset_name: str, dataset: pd.DataFrame) -> np.ndarray:
+        """Generate target values based on dataset type and characteristics"""
+        try:
+            # Base risk scores
+            environmental_risk = 0.3
+            infrastructure_risk = 0.3
+            construction_risk = 0.3
             
-            # Calculate infrastructure risk based on infrastructure data
-            if features.get('infrastructure'):
-                infra_data = features['infrastructure']
-                if infra_data.get('count', 0) == 0:
-                    infrastructure_risk += 0.5  # No infrastructure data
-                elif infra_data.get('count', 0) > 50:
-                    infrastructure_risk += 0.3  # High density
-                elif infra_data.get('count', 0) < 5:
-                    infrastructure_risk += 0.2  # Low coverage
+            # Adjust based on dataset type
+            if dataset_name == 'construction':
+                construction_risk = 0.7
+                # Check for high-value projects
+                if 'Construction Award' in dataset.columns:
+                    awards = pd.to_numeric(dataset['Construction Award'], errors='coerce')
+                    if isinstance(awards, pd.Series) and not awards.isna().all():
+                        avg_award = awards.mean()
+                        if avg_award > 1000000:  # $1M+
+                            construction_risk = 0.9
+                        elif avg_award > 100000:  # $100K+
+                            construction_risk = 0.6
+                
+                # Check for safety-related projects
+                if 'Project Description' in dataset.columns:
+                    safety_keywords = ['safety', 'fire', 'emergency', 'structural']
+                    safety_count = sum(1 for desc in dataset['Project Description'].dropna() 
+                                     if any(keyword in str(desc).lower() for keyword in safety_keywords))
+                    if safety_count > 0:
+                        construction_risk = min(1.0, construction_risk + 0.2)
             
-            # Calculate construction risk based on environmental and infrastructure factors
-            construction_risk = (environmental_risk + infrastructure_risk) * 0.6
+            elif dataset_name == 'infrastructure':
+                infrastructure_risk = 0.6
+                # Check for broadband adoption issues
+                if 'No Internet Access (Percentage of Households)' in dataset.columns:
+                    no_internet = pd.to_numeric(dataset['No Internet Access (Percentage of Households)'], errors='coerce')
+                    if isinstance(no_internet, pd.Series) and not no_internet.isna().all():
+                        avg_no_internet = no_internet.mean()
+                        if avg_no_internet > 20:  # High percentage without internet
+                            infrastructure_risk = 0.8
             
-            # Normalize risks to 0-1 range
-            environmental_risk = min(1.0, environmental_risk)
-            infrastructure_risk = min(1.0, infrastructure_risk)
-            construction_risk = min(1.0, construction_risk)
+            elif dataset_name == 'climate':
+                environmental_risk = 0.5
+                # Check for extreme temperatures
+                if 'tempc' in dataset.columns:
+                    temps = pd.to_numeric(dataset['tempc'], errors='coerce')
+                    if isinstance(temps, pd.Series) and not temps.isna().all():
+                        temp_range = temps.max() - temps.min()
+                        if temp_range > 30:  # High temperature variation
+                            environmental_risk = 0.7
+            
+            # Normalize to 0-1 range
+            environmental_risk = min(1.0, max(0.0, environmental_risk))
+            infrastructure_risk = min(1.0, max(0.0, infrastructure_risk))
+            construction_risk = min(1.0, max(0.0, construction_risk))
             
             return np.array([environmental_risk, infrastructure_risk, construction_risk])
             
         except Exception as e:
-            logger.error(f"Error generating risk targets: {e}")
-            # Fallback to moderate risk if analysis fails
-            return np.array([0.5, 0.5, 0.5])
+            logger.warning(f"Error generating target for {dataset_name}: {e}")
+            return np.array([0.5, 0.5, 0.5])  # Default moderate risk
     
-    def _features_to_vector(self, features: Dict) -> Optional[np.ndarray]:
-        """Convert features dictionary to feature vector - matches training exactly"""
-        try:
-            feature_vector = []
-            
-            # Infrastructure features (5 features)
-            infra = features.get('infrastructure', {})
-            feature_vector.extend([
-                infra.get('count', 0),
-                infra.get('total_length', 0),
-                infra.get('avg_diameter', 0),
-                infra.get('avg_depth', 0),
-                len(infra.get('materials', {}))
-            ])
-            
-            # Climate features (3 base + temperature features)
-            climate = features.get('climate', {})
-            climate_features = [
-                climate.get('wind_speed_avg', 0),
-                climate.get('wind_gust_max', 0),
-                climate.get('wind_direction_avg', 0)
-            ]
-            
-            # Add temperature features
-            for key, value in climate.items():
-                if 'temp_' in key:
-                    climate_features.append(value)
-            
-            feature_vector.extend(climate_features)
-            
-            # Vegetation features (2 features)
-            veg = features.get('vegetation', {})
-            feature_vector.extend([
-                veg.get('zones_count', 0),
-                len(veg.get('zone_types', {}))
-            ])
-            
-            # Pad to consistent length of 20 (matches training)
-            while len(feature_vector) < 20:
-                feature_vector.append(0.0)
-            
-            return np.array(feature_vector[:20])  # Ensure consistent 20 features
-            
-        except Exception as e:
-            logger.error(f"Error converting features to vector: {e}")
-            return None
+    def _find_coordinate_columns(self, dataset: pd.DataFrame) -> Tuple[Optional[str], Optional[str]]:
+        """Find latitude and longitude columns in a dataset"""
+        lat_col, lon_col = None, None
+        
+        for col in dataset.columns:
+            col_lower = col.lower()
+            if any(pattern in col_lower for pattern in ['latitude', 'lat']):
+                if not any(false_match in col_lower for false_match in ['tabulation', 'calculation', 'relation']):
+                    lat_col = col
+            elif any(pattern in col_lower for pattern in ['longitude', 'lon', 'lng']):
+                lon_col = col
+            elif lat_col is None and 'y' in col_lower:
+                lat_col = col
+            elif lon_col is None and 'x' in col_lower:
+                lon_col = col
+        
+        return lat_col, lon_col
     
     @log_performance(logger)
     def train(self, X: np.ndarray, y: np.ndarray, validation_split: float = 0.2, epochs: int = 100) -> Dict:
@@ -340,7 +473,7 @@ class CivilEngineeringSystem:
                 return self._get_fallback_assessment(lat, lon)
             
             # Convert features to vector
-            feature_vector = self._features_to_vector(features)
+            feature_vector = self._create_feature_vector(features, 'generic') if hasattr(self, '_create_feature_vector') else None
             if feature_vector is None or len(feature_vector) == 0:
                 logger.warning("Failed to convert features to vector")
                 return self._get_fallback_assessment(lat, lon)
@@ -607,7 +740,7 @@ class CivilEngineeringSystem:
                 'survey_priority': 'medium',
                 'required_surveys': self._identify_required_surveys(features),
                 'survey_methods': self._recommend_survey_methods(features),
-                'survey_cost_estimation': self._estimate_survey_costs(features),
+                'survey_cost_estimation': self._estimate_survey_cost(features),
                 'survey_priority_scoring': self._calculate_survey_priority_scores(features),
                 'confidence': data_completeness,
                 'recommendations': self._generate_survey_recommendations(features),
@@ -638,9 +771,17 @@ class CivilEngineeringSystem:
         # Returns: List of identified risk factors
         # This method delegates to the RiskAnalyzer module for proper separation of concerns
         
-        from src.core.risk_analyzer import RiskAnalyzer
+        from src.core.analyzers.risk_analyzer import RiskAnalyzer
         risk_analyzer = RiskAnalyzer()
-        return risk_analyzer.analyze_risk_factors(features, prediction)
+        import pandas as pd
+        # If features is a dict, convert to DataFrame
+        if isinstance(features, dict):
+            features_df = pd.DataFrame([features])
+        else:
+            features_df = features
+        risk_result = risk_analyzer.analyze(features_df)
+        # Extract risk factors from the result dict
+        return risk_result.get('risk_assessment', {}).get('summary', [])
     
     def _calculate_prediction_confidence(self, features: Dict) -> float:
         # Calculate confidence score based on data availability
@@ -1153,7 +1294,8 @@ class CivilEngineeringSystem:
             # Find type/category column dynamically
             type_columns = [col for col in vegetation_data.columns if any(keyword in col.lower() for keyword in ['type', 'category', 'class', 'zone'])]
             if type_columns:
-                type_series = vegetation_data[type_columns[0]]
+                type_series = vegetation_data['Type']
+                unique_types = type_series.unique() if type_series is not None else []
                 zone_types = type_series.unique().tolist() if type_series is not None else []
             else:
                 zone_types = []
@@ -1622,7 +1764,7 @@ class CivilEngineeringSystem:
         # Returns: List of required surveys
         # This method delegates to the SurveyAnalyzer module for proper separation of concerns
         
-        from src.core.survey_analyzer import SurveyAnalyzer
+        from src.core.analyzers.survey_analyzer import SurveyAnalyzer
         survey_analyzer = SurveyAnalyzer()
         return survey_analyzer.identify_required_surveys(features)
     
@@ -1664,7 +1806,7 @@ class CivilEngineeringSystem:
         # Returns: Detailed cost estimation dictionary
         # This method delegates to the SurveyAnalyzer module for proper separation of concerns
         
-        from src.core.survey_analyzer import SurveyAnalyzer
+        from src.core.analyzers.survey_analyzer import SurveyAnalyzer
         survey_analyzer = SurveyAnalyzer()
         return survey_analyzer.estimate_survey_costs(features)
     
@@ -1675,7 +1817,7 @@ class CivilEngineeringSystem:
         # Returns: Priority scoring dictionary
         # This method delegates to the SurveyAnalyzer module for proper separation of concerns
         
-        from src.core.survey_analyzer import SurveyAnalyzer
+        from src.core.analyzers.survey_analyzer import SurveyAnalyzer
         survey_analyzer = SurveyAnalyzer()
         return survey_analyzer.calculate_priority_scores(features)
     

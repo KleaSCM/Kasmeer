@@ -718,6 +718,15 @@ def analyze(location: str, data_dir: str, output: str):
                     completeness = summary['data_quality']['completeness']
                     console.print(f"• Data Completeness: {completeness:.1f}%")
             
+            # Content Intelligence (NEW!)
+            if 'content_intelligence' in briefing:
+                content_intel = briefing['content_intelligence']
+                console.print(f"\n[bold magenta]🧠 CONTENT INTELLIGENCE[/bold magenta]")
+                console.print(f"• Content Type: {content_intel.get('content_type', 'Unknown')}")
+                console.print(f"• Confidence: {content_intel.get('confidence', 0.0):.1%}")
+                if content_intel.get('tags'):
+                    console.print(f"• AI Tags: {', '.join(content_intel['tags'])}")
+            
             # Site Materials
             if 'site_materials' in briefing and briefing['site_materials'].get('summary'):
                 console.print(f"\n[bold yellow]🏗️ SITE MATERIALS[/bold yellow]")

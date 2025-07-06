@@ -38,7 +38,7 @@ class UniversalReporter:
     """
     
     def __init__(self):
-        """Initialize the Universal Reporter with modular analyzers"""
+        """Initialize the Universal Reporter with modular analyzers and content intelligence"""
         logger.info("Initializing Universal Reporter - The AI brain for civil engineering data")
         
         # Initialize all modular analyzers
@@ -52,7 +52,37 @@ class UniversalReporter:
         self.cross_dataset_analyzer = CrossDatasetAnalyzer()
         self.survey_analyzer = SurveyAnalyzer()
         
-        logger.info("Universal Reporter initialized with modular analyzers")
+        # Initialize content analysis components for smart routing
+        try:
+            from .content_analyzer import ContentAnalyzer, SmartTagger, CrossDatasetIntelligence
+            self.content_analyzer = ContentAnalyzer()
+            self.smart_tagger = SmartTagger()
+            self.cross_intelligence = CrossDatasetIntelligence()
+            self.content_analysis_available = True
+            logger.info("Content analysis intelligence integrated")
+        except ImportError:
+            self.content_analysis_available = False
+            logger.warning("Content analysis not available - using fallback mode")
+        
+        # Load content analysis results if available
+        self.content_analysis_results = self._load_content_analysis_results()
+        
+        logger.info("Universal Reporter initialized with modular analyzers and content intelligence")
+    
+    def _load_content_analysis_results(self) -> Dict[str, Any]:
+        """Load content analysis results if available"""
+        try:
+            import json
+            with open('content_analysis_results.json', 'r') as f:
+                results = json.load(f)
+            logger.info("Content analysis results loaded successfully")
+            return results
+        except FileNotFoundError:
+            logger.info("No content analysis results found - will analyze on-demand")
+            return {}
+        except Exception as e:
+            logger.warning(f"Error loading content analysis results: {e}")
+            return {}
     
     @log_performance(logger)
     def analyze_dataset(self, dataset: pd.DataFrame, dataset_type: Optional[str] = None, location: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
@@ -72,28 +102,87 @@ class UniversalReporter:
         """
         logger.info(f"Generating Civil Engineer's Site Briefing for dataset with {len(dataset)} records")
         
-        # Initialize comprehensive analysis using modular analyzers
+        # Get content intelligence for smart analysis routing
+        content_intelligence = self._get_content_intelligence(dataset, dataset_type)
+        
+        # Initialize comprehensive analysis using modular analyzers with content-aware routing
         briefing = {
-            'executive_summary': self._generate_executive_summary(dataset, location),
-            'site_materials': self.construction_analyzer.analyze(dataset)['site_materials'],
-            'work_history': self.construction_analyzer.analyze(dataset)['work_history'],
-            'utilities_infrastructure': self.infrastructure_analyzer.analyze(dataset)['utilities_infrastructure'],
-            'environmental_context': self.environmental_analyzer.analyze(dataset)['environmental_context'],
-            'costs_funding': self.financial_analyzer.analyze(dataset)['costs_funding'],
-            'risks_hazards': self._analyze_risks_hazards(dataset),
-            'missing_data': self._identify_missing_data(dataset),
-            'recommendations': self._generate_actionable_recommendations(dataset, location),
-            'nn_insights': self._get_neural_network_insights(dataset, location),
-            'survey_analysis': self.survey_analyzer.analyze(dataset),
-            'spatial_analysis': self.spatial_analyzer.analyze(dataset, location=location)['spatial_analysis'],
-            'temporal_analysis': self.temporal_analyzer.analyze(dataset)['temporal_analysis'],
-            'cross_dataset_analysis': self._get_cross_dataset_analysis(dataset, location)
+            'executive_summary': self._generate_executive_summary(dataset, location, content_intelligence),
+            'content_intelligence': content_intelligence,
+            'site_materials': self._analyze_with_content_awareness(dataset, 'construction', lambda d: self.construction_analyzer.analyze(d)['site_materials']),
+            'work_history': self._analyze_with_content_awareness(dataset, 'construction', lambda d: self.construction_analyzer.analyze(d)['work_history']),
+            'utilities_infrastructure': self._analyze_with_content_awareness(dataset, 'infrastructure', lambda d: self.infrastructure_analyzer.analyze(d)['utilities_infrastructure']),
+            'environmental_context': self._analyze_with_content_awareness(dataset, 'environmental', lambda d: self.environmental_analyzer.analyze(d)['environmental_context']),
+            'costs_funding': self._analyze_with_content_awareness(dataset, 'financial', lambda d: self.financial_analyzer.analyze(d)['costs_funding']),
+            'risks_hazards': self._analyze_risks_hazards(dataset, content_intelligence),
+            'missing_data': self._identify_missing_data(dataset, content_intelligence),
+            'recommendations': self._generate_actionable_recommendations(dataset, location, content_intelligence),
+            'nn_insights': self._get_neural_network_insights(dataset, location, content_intelligence),
+            'survey_analysis': self._analyze_with_content_awareness(dataset, 'survey', lambda d: self.survey_analyzer.analyze(d)),
+            'spatial_analysis': self._analyze_with_content_awareness(dataset, 'spatial', lambda d: self.spatial_analyzer.analyze(d, location=location)['spatial_analysis']),
+            'temporal_analysis': self._analyze_with_content_awareness(dataset, 'temporal', lambda d: self.temporal_analyzer.analyze(d)['temporal_analysis']),
+            'cross_dataset_analysis': self._get_cross_dataset_analysis(dataset, location, content_intelligence)
         }
         
-        logger.info("Civil Engineer's Site Briefing completed")
+        logger.info("Civil Engineer's Site Briefing completed with content intelligence")
         return briefing
     
-    def _generate_executive_summary(self, dataset: pd.DataFrame, location: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def _get_content_intelligence(self, dataset: pd.DataFrame, dataset_type: Optional[str] = None) -> Dict[str, Any]:
+        """Get content intelligence for smart analysis routing"""
+        if not self.content_analysis_available:
+            return {'content_type': 'unknown', 'confidence': 0.0, 'tags': []}
+        
+        try:
+            # Use content analyzer to get dataset intelligence
+            content_analysis = self.content_analyzer.analyze_content(dataset, dataset_type or 'unknown')
+            tagging_result = self.smart_tagger.auto_tag_dataset(dataset, dataset_type or 'unknown')
+            
+            return {
+                'content_type': content_analysis.get('content_type', 'unknown'),
+                'confidence': tagging_result.get('confidence', 0.0),
+                'tags': tagging_result.get('tags', []),
+                'content_analysis': content_analysis,
+                'tagging_result': tagging_result
+            }
+        except Exception as e:
+            logger.warning(f"Content intelligence analysis failed: {e}")
+            return {'content_type': 'unknown', 'confidence': 0.0, 'tags': []}
+    
+    def _analyze_with_content_awareness(self, dataset: pd.DataFrame, analysis_type: str, analyzer_func) -> Dict[str, Any]:
+        """Analyze dataset with content awareness for optimal routing"""
+        try:
+            # Get content intelligence
+            content_intelligence = self._get_content_intelligence(dataset)
+            content_type = content_intelligence.get('content_type', 'unknown')
+            
+            # Check if this analysis type is relevant for the content type
+            relevance_map = {
+                'construction': ['construction', 'infrastructure', 'building'],
+                'infrastructure': ['infrastructure', 'construction', 'utility'],
+                'environmental': ['environmental', 'weather', 'climate'],
+                'financial': ['financial', 'construction', 'infrastructure'],
+                'spatial': ['geospatial', 'location', 'coordinate'],
+                'temporal': ['temporal', 'time', 'date'],
+                'survey': ['survey', 'questionnaire', 'assessment']
+            }
+            
+            relevant_types = relevance_map.get(analysis_type, [])
+            is_relevant = content_type in relevant_types or 'unknown' in relevant_types
+            
+            if is_relevant:
+                # Run the analyzer
+                result = analyzer_func(dataset)
+                return result
+            else:
+                # Return minimal analysis for non-relevant content
+                logger.info(f"Skipping {analysis_type} analysis for {content_type} content type")
+                return {f'{analysis_type}_analysis': 'Content type not relevant for this analysis'}
+                
+        except Exception as e:
+            logger.warning(f"Content-aware analysis failed for {analysis_type}: {e}")
+            return {f'{analysis_type}_analysis': f'Analysis failed: {str(e)}'}
+    
+    def _generate_executive_summary(self, dataset: pd.DataFrame, location: Optional[Dict[str, Any]] = None, content_intelligence: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Generate an executive summary of the site for civil engineers"""
         summary = {
             'site_overview': '',
@@ -103,16 +192,28 @@ class UniversalReporter:
             'data_quality': self._assess_data_quality(dataset)
         }
         
-        # Dynamic site overview
+        # Dynamic site overview with content intelligence
         total_records = len(dataset)
         coord_cols = self.construction_analyzer._find_coordinate_columns(dataset)
         has_coordinates = coord_cols['lat'] is not None and coord_cols['lon'] is not None
         
-        # Generate site overview
-        if has_coordinates:
-            summary['site_overview'] = f"Site contains {total_records} geolocated records with comprehensive engineering data."
+        # Use content intelligence for enhanced overview
+        if content_intelligence and content_intelligence.get('content_type') != 'unknown':
+            content_type = content_intelligence['content_type']
+            confidence = content_intelligence.get('confidence', 0.0)
+            tags = content_intelligence.get('tags', [])
+            
+            summary['site_overview'] = f"Site contains {total_records} {content_type} records with {confidence:.1%} confidence."
+            if has_coordinates:
+                summary['site_overview'] += " Data includes geolocation information."
+            if tags:
+                summary['site_overview'] += f" Detected tags: {', '.join(tags[:3])}."
         else:
-            summary['site_overview'] = f"Site contains {total_records} records (no coordinate data available)."
+            # Fallback to original overview
+            if has_coordinates:
+                summary['site_overview'] = f"Site contains {total_records} geolocated records with comprehensive engineering data."
+            else:
+                summary['site_overview'] = f"Site contains {total_records} records (no coordinate data available)."
         
         # Key findings
         if total_records > 0:
@@ -135,7 +236,7 @@ class UniversalReporter:
         
         return summary
     
-    def _identify_missing_data(self, dataset: pd.DataFrame) -> Dict[str, Any]:
+    def _identify_missing_data(self, dataset: pd.DataFrame, content_intelligence: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Identify what critical data is missing"""
         missing = {
             'critical_missing': [],
@@ -169,7 +270,7 @@ class UniversalReporter:
         
         return missing
     
-    def _generate_actionable_recommendations(self, dataset: pd.DataFrame, location: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def _generate_actionable_recommendations(self, dataset: pd.DataFrame, location: Optional[Dict[str, Any]] = None, content_intelligence: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Generate actionable recommendations for civil engineers"""
         recommendations = {
             'immediate_actions': [],
@@ -212,7 +313,7 @@ class UniversalReporter:
         
         return recommendations
     
-    def _get_neural_network_insights(self, dataset: pd.DataFrame, location: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def _get_neural_network_insights(self, dataset: pd.DataFrame, location: Optional[Dict[str, Any]] = None, content_intelligence: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Get insights from the neural network"""
         nn_insights = {
             'pattern_recognition': [],
@@ -229,6 +330,26 @@ class UniversalReporter:
             # Import and initialize the neural network
             from src.ml.neural_network import CivilEngineeringSystem
             nn_system = CivilEngineeringSystem()
+            
+            # Add content intelligence insights
+            if content_intelligence and content_intelligence.get('content_type') != 'unknown':
+                content_type = content_intelligence['content_type']
+                confidence = content_intelligence.get('confidence', 0.0)
+                tags = content_intelligence.get('tags', [])
+                
+                nn_insights['pattern_recognition'].append(f"Content type detected: {content_type} (confidence: {confidence:.1%})")
+                if tags:
+                    nn_insights['pattern_recognition'].append(f"Content tags: {', '.join(tags)}")
+                
+                # Add content-specific insights
+                if content_type == 'construction':
+                    nn_insights['recommendations'].append("Focus on construction project analysis and timeline management")
+                elif content_type == 'infrastructure':
+                    nn_insights['recommendations'].append("Prioritize infrastructure condition assessment and maintenance planning")
+                elif content_type == 'environmental':
+                    nn_insights['recommendations'].append("Emphasize environmental impact assessment and compliance monitoring")
+                elif content_type == 'financial':
+                    nn_insights['recommendations'].append("Concentrate on cost analysis and budget optimization")
             
             # Analyze project patterns
             if 'Project Title' in dataset.columns:
@@ -1101,7 +1222,7 @@ class UniversalReporter:
             })
         return actions 
     
-    def _analyze_risks_hazards(self, dataset: pd.DataFrame) -> Dict[str, Any]:
+    def _analyze_risks_hazards(self, dataset: pd.DataFrame, content_intelligence: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Analyze risks and hazards at the site (modular fallback for RiskAnalyzer)"""
         # For now, use the same logic as before, but this should be replaced by a modular call to a real RiskAnalyzer
         risks = {
@@ -1241,7 +1362,7 @@ class UniversalReporter:
                 risks['summary'].append(f"Financial risks identified: {len(set(all_financial_risks))} unique issues")
         return risks
     
-    def _get_cross_dataset_analysis(self, dataset: pd.DataFrame, location: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def _get_cross_dataset_analysis(self, dataset: pd.DataFrame, location: Optional[Dict[str, Any]] = None, content_intelligence: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Get cross-dataset analysis for the current dataset"""
         # For now, analyze the single dataset as if it were multiple datasets
         # In a real implementation, this would compare against other loaded datasets
