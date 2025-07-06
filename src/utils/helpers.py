@@ -482,7 +482,7 @@ def filter_by_location(df: pd.DataFrame, lat: float, lon: float, radius: float =
             mask = np.isclose(lat_vals, lat, atol=radius) & np.isclose(lon_vals, lon, atol=radius)  # type: ignore
             logger.info(f"Approximate matching (np.isclose): looking within {radius} degrees of ({lat}, {lon})")
         
-        filtered_df = df_valid[mask].copy()
+        filtered_df = df_valid.loc[mask].copy()
         logger.info(f"Found {len(filtered_df)} records matching location criteria")
         
         return filtered_df

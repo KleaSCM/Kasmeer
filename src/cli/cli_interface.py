@@ -633,7 +633,11 @@ def analyze(location: str, data_dir: str, output: str):
                     lon_numeric = pd.to_numeric(dataset[lon_col], errors='coerce')
                     
                     # Get sample coordinates
-                    valid_coords = dataset[lat_numeric.notna() & lon_numeric.notna()]
+                    lat_valid = pd.notna(lat_numeric)
+                    lon_valid = pd.notna(lon_numeric)
+                    lat_mask = np.asarray(lat_valid)
+                    lon_mask = np.asarray(lon_valid)
+                    valid_coords = dataset[lat_mask & lon_mask]
                     if len(valid_coords) > 0:
                         sample_lat = valid_coords[lat_col].iloc[0]
                         sample_lon = valid_coords[lon_col].iloc[0]
@@ -658,9 +662,11 @@ def analyze(location: str, data_dir: str, output: str):
                     lon_numeric = pd.to_numeric(dataset[lon_col], errors='coerce')
                     
                     # Filter to within 1km of the location
+                    lat_array = np.asarray(lat_numeric)
+                    lon_array = np.asarray(lon_numeric)
                     distances = np.sqrt(
-                        (lat_numeric - lat)**2 + 
-                        (lon_numeric - lon)**2
+                        (lat_array - lat)**2 + 
+                        (lon_array - lon)**2
                     )
                     nearby_data = dataset[distances <= 0.01]  # 1km = 0.01 degrees
                     if len(nearby_data) > 0:
