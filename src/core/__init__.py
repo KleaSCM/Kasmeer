@@ -10,6 +10,7 @@ from .analyzers.risk_analyzer import RiskAnalyzer
 from .analyzers.survey_analyzer import SurveyAnalyzer
 from .report_formatter import ReportFormatter
 from .dataset_config import DatasetConfig
+from .content_analyzer import ContentAnalyzer, SmartTagger, CrossDatasetIntelligence, ContentDetector
 
 __all__ = [
     'UniversalReporter',
@@ -17,7 +18,11 @@ __all__ = [
     'RiskAnalyzer',
     'SurveyAnalyzer',
     'ReportFormatter',
-    'DatasetConfig'
+    'DatasetConfig',
+    'ContentAnalyzer',
+    'SmartTagger',
+    'CrossDatasetIntelligence', 
+    'ContentDetector'
 ]
 
 __version__ = "1.0.0" 

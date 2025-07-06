@@ -1069,6 +1069,105 @@ def universal_analyze(data_dir, dataset_type, output, location):
         console.print(f"[red]❌ Error during Universal Reporter analysis: {e}[/red]")
         logger.error(f"Universal Reporter analysis error: {e}")
 
+@cli.command()
+@click.option('--data-dir', default='DataSets', help='Directory containing datasets')
+@click.option('--output', '-o', help='Output file for content analysis results (JSON format)')
+@log_performance(logger)
+def content_analyze(data_dir, output):
+    """Analyze dataset content and auto-tag datasets"""
+    logger.info(f"content-analyze command: data_dir={data_dir}, output={output}")
+    
+    try:
+        from src.core.content_analyzer import ContentAnalyzer, SmartTagger, CrossDatasetIntelligence
+        
+        # Initialize content analyzer components
+        content_analyzer = ContentAnalyzer()
+        smart_tagger = SmartTagger()
+        cross_intelligence = CrossDatasetIntelligence()
+        
+        # Load data
+        data_processor = DataProcessor(data_dir)
+        loaded_data = data_processor.discover_and_load_all_data()
+        
+        if not loaded_data:
+            console.print("[red]❌ No datasets found to analyze[/red]")
+            return
+        
+        console.print(f"\n[bold blue]🧠 CONTENT ANALYSIS OF {len(loaded_data)} DATASETS[/bold blue]")
+        
+        # Analyze each dataset
+        all_results = {}
+        
+        for dataset_name, dataset in loaded_data.items():
+            console.print(f"\n[cyan]📊 Analyzing {dataset_name}...[/cyan]")
+            
+            # Content analysis
+            content_analysis = content_analyzer.analyze_content(dataset, dataset_name)
+            
+            # Auto-tagging
+            tagging_result = smart_tagger.auto_tag_dataset(dataset, dataset_name)
+            
+            # Combine results
+            dataset_result = {
+                'content_analysis': content_analysis,
+                'tagging': tagging_result,
+                'summary': {
+                    'content_type': content_analysis['content_type'],
+                    'confidence': tagging_result['confidence'],
+                    'tags': tagging_result['tags'],
+                    'records': content_analysis['data_characteristics']['total_records'],
+                    'columns': content_analysis['data_characteristics']['total_columns']
+                }
+            }
+            
+            all_results[dataset_name] = dataset_result
+            
+            # Display results
+            console.print(f"  🏷️ Content Type: {content_analysis['content_type']}")
+            console.print(f"  🎯 Confidence: {tagging_result['confidence']:.2f}")
+            console.print(f"  📋 Tags: {', '.join(tagging_result['tags'])}")
+            console.print(f"  📊 Records: {content_analysis['data_characteristics']['total_records']:,}")
+        
+        # Cross-dataset analysis
+        console.print(f"\n[bold yellow]🧠 CROSS-DATASET INTELLIGENCE[/bold yellow]")
+        relationship_analysis = cross_intelligence.analyze_dataset_relationships(loaded_data)
+        
+        console.print(f"📊 Found {sum(len(rels) for rels in relationship_analysis['relationships'].values())} relationships")
+        console.print(f"🔗 Identified {len(relationship_analysis['combinations'])} potential combinations")
+        
+        # Show key relationships
+        for rel_type, rels in relationship_analysis['relationships'].items():
+            if rels:
+                console.print(f"\n[bold]{rel_type.title()} Relationships:[/bold]")
+                for rel in rels[:3]:  # Show first 3
+                    console.print(f"  • {rel['description']}")
+        
+        # Show combinations
+        if relationship_analysis['combinations']:
+            console.print(f"\n[bold]🔗 Recommended Dataset Combinations:[/bold]")
+            for combo in relationship_analysis['combinations']:
+                console.print(f"  • {', '.join(combo['datasets'])} - {combo['strength']} relationship")
+                if combo['suggested_analysis']:
+                    console.print(f"    💡 Suggested: {combo['suggested_analysis'][0]}")
+        
+        # Save results if output specified
+        if output:
+            import json
+            with open(output, 'w') as f:
+                json.dump({
+                    'content_analysis': all_results,
+                    'cross_dataset_analysis': relationship_analysis,
+                    'timestamp': datetime.now().isoformat()
+                }, f, indent=2, default=str)
+            console.print(f"\n[green]✅ Content analysis results saved to {output}[/green]")
+        
+        console.print(f"\n[bold green]🎉 CONTENT ANALYSIS COMPLETE![/bold green]")
+        console.print(f"✨ Analyzed {len(all_results)} datasets with AI-powered content detection")
+        
+    except Exception as e:
+        console.print(f"[red]❌ Error during content analysis: {e}[/red]")
+        logger.error(f"Content analysis error: {e}")
+
 if __name__ == '__main__':
     from .dataset_setup import dataset_setup
     cli.add_command(dataset_setup)
