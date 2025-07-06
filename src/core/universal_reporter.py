@@ -699,21 +699,14 @@ class UniversalReporter:
         
         # Analyze costs
         for col in cost_cols:
-            if col in dataset.columns:
+            if col in dataset.columns and dataset[col].dtype in ['int64', 'float64']:
                 try:
-                    if dataset[col].dtype in ['int64', 'float64']:
-                        cost_stats = {
-                            'total': float(dataset[col].sum()),
-                            'mean': float(dataset[col].mean()),
-                            'min': float(dataset[col].min()),
-                            'max': float(dataset[col].max())
-                        }
-                        costs['project_costs'][col] = cost_stats
-                        costs['summary'].append(f"Costs {col}: ${cost_stats['total']:,.0f} total, ${cost_stats['mean']:,.0f} avg")
-                    else:
-                        cost_data = dataset[col].value_counts()
-                        costs['project_costs'][col] = cost_data.to_dict()
-                        costs['summary'].append(f"Costs: {len(cost_data)} different categories found")
+                    costs[col] = {
+                        'total': float(dataset[col].sum()),
+                        'mean': float(dataset[col].mean()),
+                        'min': float(dataset[col].min()),
+                        'max': float(dataset[col].max())
+                    }
                 except Exception as e:
                     logger.warning(f"Cost analysis failed for column {col}: {e}")
         
@@ -1261,10 +1254,10 @@ class UniversalReporter:
         if coord_cols['lat'] and coord_cols['lon']:
             lat_col, lon_col = coord_cols['lat'], coord_cols['lon']
             try:
-            # Convert to numeric, ignoring errors
+                # Convert to numeric, ignoring errors
                 lat_numeric = pd.to_numeric(dataset[lat_col], errors='coerce')  # type: ignore
                 lon_numeric = pd.to_numeric(dataset[lon_col], errors='coerce')  # type: ignore
-            # Only calculate bounds if we have valid numeric data
+                # Only calculate bounds if we have valid numeric data
                 if not lat_numeric.isna().all() and not lon_numeric.isna().all():  # type: ignore
                     overview['geographic_bounds'] = {
                         'lat_min': float(lat_numeric.min()),  # type: ignore
@@ -1513,10 +1506,10 @@ class UniversalReporter:
         if len(numeric_cols) > 1:
             try:
                 corr_matrix = dataset[numeric_cols].corr()  # type: ignore
-            correlations['numeric_correlations'] = {
-                'matrix': corr_matrix.to_dict(),
-                'strong_correlations': self._find_strong_correlations(corr_matrix)
-            }
+                correlations['numeric_correlations'] = {
+                    'matrix': corr_matrix.to_dict(),
+                    'strong_correlations': self._find_strong_correlations(corr_matrix)
+                }
             except Exception as e:
                 logger.warning(f"Correlation analysis failed: {e}")
                 correlations['numeric_correlations'] = {'error': str(e)}
@@ -1536,16 +1529,16 @@ class UniversalReporter:
         numeric_cols = dataset.select_dtypes(include=[np.number]).columns
         for col in numeric_cols:
             try:
-            Q1 = dataset[col].quantile(0.25)
-            Q3 = dataset[col].quantile(0.75)
-            IQR = Q3 - Q1
-            outliers = dataset[(dataset[col] < Q1 - 1.5 * IQR) | (dataset[col] > Q3 + 1.5 * IQR)]
-            if len(outliers) > 0:
-                anomalies['outliers'][col] = {
-                    'count': len(outliers),
-                    'percentage': (len(outliers) / len(dataset)) * 100,
-                    'values': outliers[col].tolist()
-                }
+                Q1 = dataset[col].quantile(0.25)
+                Q3 = dataset[col].quantile(0.75)
+                IQR = Q3 - Q1
+                outliers = dataset[(dataset[col] < Q1 - 1.5 * IQR) | (dataset[col] > Q3 + 1.5 * IQR)]
+                if len(outliers) > 0:
+                    anomalies['outliers'][col] = {
+                        'count': len(outliers),
+                        'percentage': (len(outliers) / len(dataset)) * 100,
+                        'values': outliers[col].tolist()
+                    }
             except Exception as e:
                 logger.warning(f"Outlier detection failed for column {col}: {e}")
         
@@ -1616,7 +1609,7 @@ class UniversalReporter:
             if any(pattern in col_lower for pattern in ['latitude', 'lat']):
                 # Avoid false matches like "lat" in "Tabulation"
                 if not any(false_match in col_lower for false_match in ['tabulation', 'calculation', 'relation']):
-                lat_col = col
+                    lat_col = col
             # Check for longitude patterns - be more precise
             elif any(pattern in col_lower for pattern in ['longitude', 'lon', 'lng']):
                 lon_col = col
@@ -1675,7 +1668,7 @@ class UniversalReporter:
                     # Convert to numeric and get actual statistics
                     numeric_data = pd.to_numeric(dataset[col], errors='coerce')
                     if not numeric_data.isna().all():
-                dimensions[col] = {
+                        dimensions[col] = {
                             'min': float(numeric_data.min()),
                             'max': float(numeric_data.max()),
                             'mean': float(numeric_data.mean()),
@@ -1760,7 +1753,7 @@ class UniversalReporter:
         for col in cost_cols:
             if col in dataset.columns and dataset[col].dtype in ['int64', 'float64']:
                 try:
-                costs[col] = {
+                    costs[col] = {
                         'total': float(dataset[col].sum()),
                         'mean': float(dataset[col].mean()),
                         'min': float(dataset[col].min()),
@@ -1797,19 +1790,19 @@ class UniversalReporter:
             return {'coordinate_count': 0}
         
         try:
-        # Convert to numeric, ignoring errors
+            # Convert to numeric, ignoring errors
             lat_numeric = pd.to_numeric(dataset[lat_col], errors='coerce')  # type: ignore
             lon_numeric = pd.to_numeric(dataset[lon_col], errors='coerce')  # type: ignore
-        
-        return {
-            'coordinate_range': {
+            
+            return {
+                'coordinate_range': {
                     'lat_min': float(lat_numeric.min()),  # type: ignore
                     'lat_max': float(lat_numeric.max()),  # type: ignore
                     'lon_min': float(lon_numeric.min()),  # type: ignore
                     'lon_max': float(lon_numeric.max())   # type: ignore
-            },
-            'coordinate_count': len(dataset)
-        }
+                },
+                'coordinate_count': len(dataset)
+            }
         except Exception as e:
             logger.warning(f"Coordinate analysis failed: {e}")
             return {'coordinate_count': 0, 'error': str(e)}
@@ -1821,16 +1814,16 @@ class UniversalReporter:
             return {'error': 'No coordinate columns found'}
         
         try:
-        distances = np.sqrt(
-            (dataset[lat_col] - location['lat'])**2 + 
-            (dataset[lon_col] - location['lon'])**2
-        )
-        return {
-            'nearest_distance': float(distances.min()),
-            'average_distance': float(distances.mean()),
-            'within_1km': len(distances[distances <= 0.01]),
-            'within_5km': len(distances[distances <= 0.05])
-        }
+            distances = np.sqrt(
+                (dataset[lat_col] - location['lat'])**2 + 
+                (dataset[lon_col] - location['lon'])**2
+            )
+            return {
+                'nearest_distance': float(distances.min()),
+                'average_distance': float(distances.mean()),
+                'within_1km': len(distances[distances <= 0.01]),
+                'within_5km': len(distances[distances <= 0.05])
+            }
         except Exception as e:
             logger.warning(f"Proximity analysis failed: {e}")
             return {'error': str(e)}
@@ -1840,12 +1833,12 @@ class UniversalReporter:
         time_analysis = {}
         for col in date_cols:
             try:
-            time_analysis[col] = {
-                'earliest': dataset[col].min(),
-                'latest': dataset[col].max(),
-                'duration_days': (dataset[col].max() - dataset[col].min()).days,
-                'record_count': len(dataset)
-            }
+                time_analysis[col] = {
+                    'earliest': dataset[col].min(),
+                    'latest': dataset[col].max(),
+                    'duration_days': (dataset[col].max() - dataset[col].min()).days,
+                    'record_count': len(dataset)
+                }
             except Exception as e:
                 logger.warning(f"Time series analysis failed for column {col}: {e}")
                 time_analysis[col] = {'error': str(e)}
@@ -1855,15 +1848,15 @@ class UniversalReporter:
         """Find strong correlations in correlation matrix"""
         strong_correlations = []
         try:
-        for i in range(len(corr_matrix.columns)):
-            for j in range(i+1, len(corr_matrix.columns)):
-                corr_value = corr_matrix.iloc[i, j]
-                if abs(corr_value) >= threshold:
-                    strong_correlations.append({
-                        'variable1': corr_matrix.columns[i],
-                        'variable2': corr_matrix.columns[j],
+            for i in range(len(corr_matrix.columns)):
+                for j in range(i+1, len(corr_matrix.columns)):
+                    corr_value = corr_matrix.iloc[i, j]
+                    if abs(corr_value) >= threshold:
+                        strong_correlations.append({
+                            'variable1': corr_matrix.columns[i],
+                            'variable2': corr_matrix.columns[j],
                             'correlation': float(corr_value)
-                    })
+                        })
         except Exception as e:
             logger.warning(f"Strong correlation analysis failed: {e}")
         return strong_correlations
