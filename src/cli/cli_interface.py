@@ -580,10 +580,215 @@ def use_version(version_id, model_dir):
 @click.option('--dataset-type', help='Type of dataset to analyze')
 @click.option('--output', '-o', help='Output file for analysis results (JSON format)')
 @click.option('--location', help='Location context (lat,lon format)')
+@click.option('--comprehensive', '-c', is_flag=True, help='Run comprehensive system analysis')
 @log_performance(logger)
-def analyze(data_dir, dataset_type, output, location):
+def analyze(data_dir, dataset_type, output, location, comprehensive):
     """Perform comprehensive analysis using the Universal Reporter"""
-    logger.info(f"analyze command: data_dir={data_dir}, dataset_type={dataset_type}, output={output}")
+    logger.info(f"analyze command: data_dir={data_dir}, dataset_type={dataset_type}, output={output}, comprehensive={comprehensive}")
+    
+    try:
+        if comprehensive:
+            # Use System Integration for comprehensive analysis
+            from ..core.system_integration import SystemIntegration
+            system = SystemIntegration()
+            
+            # Load data
+            data_processor = DataProcessor(data_dir)
+            loaded_data = data_processor.discover_and_load_all_data()
+            
+            if not loaded_data:
+                console.print("[red]❌ No datasets found to analyze[/red]")
+                return
+            
+            # Parse location if provided
+            location_context = None
+            if location:
+                try:
+                    lat, lon = map(float, location.split(','))
+                    location_context = {'lat': lat, 'lon': lon}
+                except ValueError:
+                    console.print("[yellow]⚠️ Invalid location format. Use 'lat,lon' (e.g., '-37.8136,144.9631')[/yellow]")
+            
+            with Progress(
+                SpinnerColumn(),
+                TextColumn("[progress.description]{task.description}"),
+                console=console
+            ) as progress:
+                
+                task = progress.add_task("Running comprehensive system analysis...", total=None)
+                
+                # Analyze each dataset with full system integration
+                all_results = {}
+                
+                for dataset_name, dataset in loaded_data.items():
+                    progress.update(task, description=f"Comprehensive analysis of {dataset_name}...")
+                    
+                    # Perform comprehensive analysis using system integration
+                    analysis_result = system.analyze_dataset_comprehensive(
+                        dataset, 
+                        dataset_type=dataset_type,
+                        location=location_context
+                    )
+                    
+                    all_results[dataset_name] = analysis_result
+                    
+                    # Display summary
+                    console.print(f"\n[bold blue]Comprehensive Analysis Results for {dataset_name}[/bold blue]")
+                    
+                    # System summary
+                    system_summary = analysis_result.get('system_summary', {})
+                    components = system_summary.get('analysis_components', {})
+                    console.print(f"  Universal Reporter: {components.get('universal_reporter', 'Unknown')}")
+                    console.print(f"  Neural Network: {components.get('neural_network', 'Unknown')}")
+                    console.print(f"  Risk Analyzer: {components.get('risk_analyzer', 'Unknown')}")
+                    console.print(f"  Survey Analyzer: {components.get('survey_analyzer', 'Unknown')}")
+                    
+                    # Key insights
+                    key_insights = system_summary.get('key_insights', [])
+                    if key_insights:
+                        console.print(f"  Key Insights: {len(key_insights)} found")
+                    
+                    # Critical findings
+                    critical_findings = system_summary.get('critical_findings', [])
+                    if critical_findings:
+                        console.print(f"  Critical Findings: {len(critical_findings)} found")
+                
+        else:
+            # Use Universal Reporter only
+            universal_reporter = UniversalReporter()
+            
+            # Load data
+            data_processor = DataProcessor(data_dir)
+            loaded_data = data_processor.discover_and_load_all_data()
+            
+            if not loaded_data:
+                console.print("[red]❌ No datasets found to analyze[/red]")
+                return
+            
+            # Parse location if provided
+            location_context = None
+            if location:
+                try:
+                    lat, lon = map(float, location.split(','))
+                    location_context = {'lat': lat, 'lon': lon}
+                except ValueError:
+                    console.print("[yellow]⚠️ Invalid location format. Use 'lat,lon' (e.g., '-37.8136,144.9631')[/yellow]")
+            
+            with Progress(
+                SpinnerColumn(),
+                TextColumn("[progress.description]{task.description}"),
+                console=console
+            ) as progress:
+                
+                task = progress.add_task("Initializing Universal Reporter...", total=None)
+                
+                # Analyze each dataset
+                all_results = {}
+                
+                for dataset_name, dataset in loaded_data.items():
+                    progress.update(task, description=f"Analyzing {dataset_name}...")
+                    
+                    # Perform comprehensive analysis
+                    analysis_result = universal_reporter.analyze_dataset(
+                        dataset, 
+                        dataset_type=dataset_type,
+                        location=location_context
+                    )
+                    
+                    all_results[dataset_name] = analysis_result
+                    
+                    # Display summary
+                    console.print(f"\n[bold blue]Analysis Results for {dataset_name}[/bold blue]")
+                    
+                    # Dataset overview
+                    overview = analysis_result.get('dataset_overview', {})
+                    console.print(f"  Records: {overview.get('total_records', 0)}")
+                    console.print(f"  Columns: {overview.get('total_columns', 0)}")
+                    
+                    # Data quality
+                    quality = analysis_result.get('data_quality', {})
+                    completeness = quality.get('completeness_score', 0)
+                    console.print(f"  Data Quality: {completeness:.1f}% complete")
+                    
+                    # Key insights
+                    recommendations = analysis_result.get('recommendations', [])
+                    if recommendations:
+                        console.print(f"  Key Recommendations: {len(recommendations)} found")
+                    
+                    # Infrastructure insights
+                    infra_insights = analysis_result.get('infrastructure_insights', {})
+                    if any(infra_insights.values()):
+                        console.print(f"  Infrastructure Analysis: Available")
+                    
+                    # Risk assessment
+                    risk_assessment = analysis_result.get('risk_assessment', {})
+                    if any(risk_assessment.values()):
+                        console.print(f"  Risk Assessment: Available")
+        
+        # Save results if output specified
+        if output:
+            with open(output, 'w') as f:
+                json.dump(all_results, f, indent=2, default=str)
+            console.print(f"[green]✅ Analysis results saved to {output}[/green]")
+        
+        # Display comprehensive summary
+        console.print("\n[bold green]🎯 Analysis Complete![/bold green]")
+        
+        total_datasets = len(all_results)
+        if comprehensive:
+            console.print(f"Comprehensive analysis completed for {total_datasets} datasets")
+        else:
+            total_records = sum(
+                result.get('dataset_overview', {}).get('total_records', 0) 
+                for result in all_results.values()
+            )
+            console.print(f"Universal Reporter analysis completed for {total_datasets} datasets with {total_records} total records")
+        
+        # Show top recommendations across all datasets
+        all_recommendations = []
+        for dataset_name, result in all_results.items():
+            if comprehensive:
+                recommendations = result.get('system_summary', {}).get('key_insights', [])
+            else:
+                recommendations = result.get('recommendations', [])
+            for rec in recommendations:
+                all_recommendations.append(f"{dataset_name}: {rec}")
+        
+        if all_recommendations:
+            console.print("\n[bold]Top Recommendations:[/bold]")
+            for i, rec in enumerate(all_recommendations[:5], 1):
+                console.print(f"  {i}. {rec}")
+        
+        # Show action items
+        all_actions = []
+        for dataset_name, result in all_results.items():
+            if comprehensive:
+                actions = result.get('system_summary', {}).get('next_steps', [])
+                for action in actions:
+                    all_actions.append(f"{dataset_name}: {action}")
+            else:
+                actions = result.get('action_items', [])
+                for action in actions:
+                    all_actions.append(f"{dataset_name}: {action.get('action', 'Unknown action')}")
+        
+        if all_actions:
+            console.print("\n[bold]Action Items:[/bold]")
+            for i, action in enumerate(all_actions[:5], 1):
+                console.print(f"  {i}. {action}")
+        
+    except Exception as e:
+        console.print(f"[red]❌ Error during analysis: {e}[/red]")
+        logger.error(f"Analysis error: {e}")
+
+@cli.command()
+@click.option('--data-dir', default='DataSets', help='Directory containing datasets')
+@click.option('--dataset-type', help='Type of dataset to analyze')
+@click.option('--output', '-o', help='Output file for analysis results (JSON format)')
+@click.option('--location', help='Location context (lat,lon format)')
+@log_performance(logger)
+def universal_analyze(data_dir, dataset_type, output, location):
+    """Perform Universal Reporter analysis only"""
+    logger.info(f"universal-analyze command: data_dir={data_dir}, dataset_type={dataset_type}, output={output}")
     
     try:
         # Initialize Universal Reporter
@@ -612,15 +817,15 @@ def analyze(data_dir, dataset_type, output, location):
             console=console
         ) as progress:
             
-            task = progress.add_task("Initializing Universal Reporter...", total=None)
+            task = progress.add_task("Universal Reporter Analysis...", total=None)
             
             # Analyze each dataset
             all_results = {}
             
             for dataset_name, dataset in loaded_data.items():
-                progress.update(task, description=f"Analyzing {dataset_name}...")
+                progress.update(task, description=f"Analyzing {dataset_name} with Universal Reporter...")
                 
-                # Perform comprehensive analysis
+                # Perform Universal Reporter analysis
                 analysis_result = universal_reporter.analyze_dataset(
                     dataset, 
                     dataset_type=dataset_type,
@@ -629,40 +834,65 @@ def analyze(data_dir, dataset_type, output, location):
                 
                 all_results[dataset_name] = analysis_result
                 
-                # Display summary
-                console.print(f"\n[bold blue]Analysis Results for {dataset_name}[/bold blue]")
+                # Display detailed results
+                console.print(f"\n[bold blue]Universal Reporter Analysis for {dataset_name}[/bold blue]")
                 
                 # Dataset overview
                 overview = analysis_result.get('dataset_overview', {})
-                console.print(f"  Records: {overview.get('total_records', 0)}")
-                console.print(f"  Columns: {overview.get('total_columns', 0)}")
+                console.print(f"  📊 Records: {overview.get('total_records', 0)}")
+                console.print(f"  📋 Columns: {overview.get('total_columns', 0)}")
                 
                 # Data quality
                 quality = analysis_result.get('data_quality', {})
                 completeness = quality.get('completeness_score', 0)
-                console.print(f"  Data Quality: {completeness:.1f}% complete")
-                
-                # Key insights
-                recommendations = analysis_result.get('recommendations', [])
-                if recommendations:
-                    console.print(f"  Key Recommendations: {len(recommendations)} found")
+                console.print(f"  ✅ Data Quality: {completeness:.1f}% complete")
                 
                 # Infrastructure insights
                 infra_insights = analysis_result.get('infrastructure_insights', {})
                 if any(infra_insights.values()):
-                    console.print(f"  Infrastructure Analysis: Available")
+                    console.print(f"  🏗️ Infrastructure Analysis: Available")
+                    for insight_type, insight_data in infra_insights.items():
+                        if insight_data:
+                            console.print(f"    - {insight_type.replace('_', ' ').title()}")
+                
+                # Environmental insights
+                env_insights = analysis_result.get('environmental_insights', {})
+                if any(env_insights.values()):
+                    console.print(f"  🌱 Environmental Analysis: Available")
+                    for insight_type, insight_data in env_insights.items():
+                        if insight_data:
+                            console.print(f"    - {insight_type.replace('_', ' ').title()}")
                 
                 # Risk assessment
                 risk_assessment = analysis_result.get('risk_assessment', {})
                 if any(risk_assessment.values()):
-                    console.print(f"  Risk Assessment: Available")
+                    console.print(f"  ⚠️ Risk Assessment: Available")
+                    for risk_type, risk_data in risk_assessment.items():
+                        if risk_data:
+                            console.print(f"    - {risk_type.replace('_', ' ').title()}")
+                
+                # Spatial analysis
+                spatial_analysis = analysis_result.get('spatial_analysis', {})
+                if spatial_analysis.get('coordinate_analysis'):
+                    console.print(f"  📍 Spatial Analysis: Available")
+                
+                # Temporal analysis
+                temporal_analysis = analysis_result.get('temporal_analysis', {})
+                if temporal_analysis.get('time_series_analysis'):
+                    console.print(f"  ⏰ Temporal Analysis: Available")
+                
+                # Anomalies
+                anomalies = analysis_result.get('anomalies', {})
+                if anomalies.get('outliers'):
+                    outlier_count = sum(len(data) for data in anomalies['outliers'].values())
+                    console.print(f"  🔍 Anomalies: {outlier_count} outliers detected")
             
             # Save results if output specified
             if output:
-                progress.update(task, description="Saving analysis results...")
+                progress.update(task, description="Saving Universal Reporter results...")
                 with open(output, 'w') as f:
                     json.dump(all_results, f, indent=2, default=str)
-                console.print(f"[green]✅ Analysis results saved to {output}[/green]")
+                console.print(f"[green]✅ Universal Reporter results saved to {output}[/green]")
             
             # Display comprehensive summary
             console.print("\n[bold green]🎯 Universal Reporter Analysis Complete![/bold green]")
@@ -673,7 +903,7 @@ def analyze(data_dir, dataset_type, output, location):
                 for result in all_results.values()
             )
             
-            console.print(f"Analyzed {total_datasets} datasets with {total_records} total records")
+            console.print(f"📊 Analyzed {total_datasets} datasets with {total_records} total records")
             
             # Show top recommendations across all datasets
             all_recommendations = []
@@ -683,7 +913,7 @@ def analyze(data_dir, dataset_type, output, location):
                     all_recommendations.append(f"{dataset_name}: {rec}")
             
             if all_recommendations:
-                console.print("\n[bold]Top Recommendations:[/bold]")
+                console.print("\n[bold]💡 Top Recommendations:[/bold]")
                 for i, rec in enumerate(all_recommendations[:5], 1):
                     console.print(f"  {i}. {rec}")
             
@@ -695,13 +925,13 @@ def analyze(data_dir, dataset_type, output, location):
                     all_actions.append(f"{dataset_name}: {action.get('action', 'Unknown action')}")
             
             if all_actions:
-                console.print("\n[bold]Action Items:[/bold]")
+                console.print("\n[bold]🎯 Action Items:[/bold]")
                 for i, action in enumerate(all_actions[:5], 1):
                     console.print(f"  {i}. {action}")
             
     except Exception as e:
-        console.print(f"[red]❌ Error during analysis: {e}[/red]")
-        logger.error(f"Analysis error: {e}")
+        console.print(f"[red]❌ Error during Universal Reporter analysis: {e}[/red]")
+        logger.error(f"Universal Reporter analysis error: {e}")
 
 if __name__ == '__main__':
     from .dataset_setup import dataset_setup

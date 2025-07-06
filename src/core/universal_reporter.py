@@ -151,17 +151,20 @@ class UniversalReporter:
         coord_cols = self._find_coordinate_columns(dataset)
         if coord_cols['lat'] and coord_cols['lon']:
             lat_col, lon_col = coord_cols['lat'], coord_cols['lon']
-            # Convert to numeric, ignoring errors
-            lat_numeric = pd.to_numeric(dataset[lat_col], errors='coerce')
-            lon_numeric = pd.to_numeric(dataset[lon_col], errors='coerce')
-            # Only calculate bounds if we have valid numeric data
-            if not lat_numeric.isna().all() and not lon_numeric.isna().all():
-                overview['geographic_bounds'] = {
-                    'lat_min': float(lat_numeric.min()),
-                    'lat_max': float(lat_numeric.max()),
-                    'lon_min': float(lon_numeric.min()),
-                    'lon_max': float(lon_numeric.max())
-                }
+            try:
+                # Convert to numeric, ignoring errors
+                lat_numeric = pd.to_numeric(dataset[lat_col], errors='coerce')  # type: ignore
+                lon_numeric = pd.to_numeric(dataset[lon_col], errors='coerce')  # type: ignore
+                # Only calculate bounds if we have valid numeric data
+                if not lat_numeric.isna().all() and not lon_numeric.isna().all():  # type: ignore
+                    overview['geographic_bounds'] = {
+                        'lat_min': float(lat_numeric.min()),  # type: ignore
+                        'lat_max': float(lat_numeric.max()),  # type: ignore
+                        'lon_min': float(lon_numeric.min()),  # type: ignore
+                        'lon_max': float(lon_numeric.max())   # type: ignore
+                    }
+            except Exception as e:
+                logger.warning(f"Geographic bounds calculation failed: {e}")
         
         return overview
     
@@ -399,11 +402,15 @@ class UniversalReporter:
         # Numeric correlations
         numeric_cols = list(dataset.select_dtypes(include=[np.number]).columns)
         if len(numeric_cols) > 1:
-            corr_matrix = dataset[numeric_cols].corr()
-            correlations['numeric_correlations'] = {
-                'matrix': corr_matrix.to_dict(),
-                'strong_correlations': self._find_strong_correlations(corr_matrix)
-            }
+            try:
+                corr_matrix = dataset[numeric_cols].corr()  # type: ignore
+                correlations['numeric_correlations'] = {
+                    'matrix': corr_matrix.to_dict(),
+                    'strong_correlations': self._find_strong_correlations(corr_matrix)
+                }
+            except Exception as e:
+                logger.warning(f"Correlation analysis failed: {e}")
+                correlations['numeric_correlations'] = {'error': str(e)}
         
         return correlations
     
@@ -419,16 +426,19 @@ class UniversalReporter:
         # Outlier detection for numeric columns
         numeric_cols = dataset.select_dtypes(include=[np.number]).columns
         for col in numeric_cols:
-            Q1 = dataset[col].quantile(0.25)
-            Q3 = dataset[col].quantile(0.75)
-            IQR = Q3 - Q1
-            outliers = dataset[(dataset[col] < Q1 - 1.5 * IQR) | (dataset[col] > Q3 + 1.5 * IQR)]
-            if len(outliers) > 0:
-                anomalies['outliers'][col] = {
-                    'count': len(outliers),
-                    'percentage': (len(outliers) / len(dataset)) * 100,
-                    'values': outliers[col].tolist()
-                }
+            try:
+                Q1 = dataset[col].quantile(0.25)
+                Q3 = dataset[col].quantile(0.75)
+                IQR = Q3 - Q1
+                outliers = dataset[(dataset[col] < Q1 - 1.5 * IQR) | (dataset[col] > Q3 + 1.5 * IQR)]
+                if len(outliers) > 0:
+                    anomalies['outliers'][col] = {
+                        'count': len(outliers),
+                        'percentage': (len(outliers) / len(dataset)) * 100,
+                        'values': outliers[col].tolist()
+                    }
+            except Exception as e:
+                logger.warning(f"Outlier detection failed for column {col}: {e}")
         
         return anomalies
     
@@ -537,12 +547,15 @@ class UniversalReporter:
         dimensions = {}
         for col in dimension_cols:
             if col in dataset.columns and dataset[col].dtype in ['int64', 'float64']:
-                dimensions[col] = {
-                    'min': dataset[col].min(),
-                    'max': dataset[col].max(),
-                    'mean': dataset[col].mean(),
-                    'std': dataset[col].std()
-                }
+                try:
+                    dimensions[col] = {
+                        'min': float(dataset[col].min()),
+                        'max': float(dataset[col].max()),
+                        'mean': float(dataset[col].mean()),
+                        'std': float(dataset[col].std())
+                    }
+                except Exception as e:
+                    logger.warning(f"Dimension analysis failed for column {col}: {e}")
         return {'dimension_statistics': dimensions}
     
     def _analyze_structural(self, dataset: pd.DataFrame, structural_cols: List[str]) -> Dict[str, Any]:
@@ -578,12 +591,15 @@ class UniversalReporter:
         costs = {}
         for col in cost_cols:
             if col in dataset.columns and dataset[col].dtype in ['int64', 'float64']:
-                costs[col] = {
-                    'total': dataset[col].sum(),
-                    'mean': dataset[col].mean(),
-                    'min': dataset[col].min(),
-                    'max': dataset[col].max()
-                }
+                try:
+                    costs[col] = {
+                        'total': float(dataset[col].sum()),
+                        'mean': float(dataset[col].mean()),
+                        'min': float(dataset[col].min()),
+                        'max': float(dataset[col].max())
+                    }
+                except Exception as e:
+                    logger.warning(f"Cost analysis failed for column {col}: {e}")
         return {'cost_statistics': costs}
     
     def _analyze_assets(self, dataset: pd.DataFrame, asset_cols: List[str]) -> Dict[str, Any]:
@@ -612,19 +628,23 @@ class UniversalReporter:
         if lat_col is None or lon_col is None:
             return {'coordinate_count': 0}
         
-        # Convert to numeric, ignoring errors
-        lat_numeric = pd.to_numeric(dataset[lat_col], errors='coerce')
-        lon_numeric = pd.to_numeric(dataset[lon_col], errors='coerce')
-        
-        return {
-            'coordinate_range': {
-                'lat_min': float(lat_numeric.min()),
-                'lat_max': float(lat_numeric.max()),
-                'lon_min': float(lon_numeric.min()),
-                'lon_max': float(lon_numeric.max())
-            },
-            'coordinate_count': len(dataset)
-        }
+        try:
+            # Convert to numeric, ignoring errors
+            lat_numeric = pd.to_numeric(dataset[lat_col], errors='coerce')  # type: ignore
+            lon_numeric = pd.to_numeric(dataset[lon_col], errors='coerce')  # type: ignore
+            
+            return {
+                'coordinate_range': {
+                    'lat_min': float(lat_numeric.min()),  # type: ignore
+                    'lat_max': float(lat_numeric.max()),  # type: ignore
+                    'lon_min': float(lon_numeric.min()),  # type: ignore
+                    'lon_max': float(lon_numeric.max())   # type: ignore
+                },
+                'coordinate_count': len(dataset)
+            }
+        except Exception as e:
+            logger.warning(f"Coordinate analysis failed: {e}")
+            return {'coordinate_count': 0, 'error': str(e)}
     
     def _analyze_proximity(self, dataset: pd.DataFrame, coord_cols: Dict[str, Optional[str]], location: Dict) -> Dict[str, Any]:
         """Analyze proximity to given location"""
@@ -632,41 +652,52 @@ class UniversalReporter:
         if lat_col is None or lon_col is None:
             return {'error': 'No coordinate columns found'}
         
-        distances = np.sqrt(
-            (dataset[lat_col] - location['lat'])**2 + 
-            (dataset[lon_col] - location['lon'])**2
-        )
-        return {
-            'nearest_distance': float(distances.min()),
-            'average_distance': float(distances.mean()),
-            'within_1km': len(distances[distances <= 0.01]),
-            'within_5km': len(distances[distances <= 0.05])
-        }
+        try:
+            distances = np.sqrt(
+                (dataset[lat_col] - location['lat'])**2 + 
+                (dataset[lon_col] - location['lon'])**2
+            )
+            return {
+                'nearest_distance': float(distances.min()),
+                'average_distance': float(distances.mean()),
+                'within_1km': len(distances[distances <= 0.01]),
+                'within_5km': len(distances[distances <= 0.05])
+            }
+        except Exception as e:
+            logger.warning(f"Proximity analysis failed: {e}")
+            return {'error': str(e)}
     
     def _analyze_time_series(self, dataset: pd.DataFrame, date_cols: List[str]) -> Dict[str, Any]:
         """Analyze time series data"""
         time_analysis = {}
         for col in date_cols:
-            time_analysis[col] = {
-                'earliest': dataset[col].min(),
-                'latest': dataset[col].max(),
-                'duration_days': (dataset[col].max() - dataset[col].min()).days,
-                'record_count': len(dataset)
-            }
+            try:
+                time_analysis[col] = {
+                    'earliest': dataset[col].min(),
+                    'latest': dataset[col].max(),
+                    'duration_days': (dataset[col].max() - dataset[col].min()).days,
+                    'record_count': len(dataset)
+                }
+            except Exception as e:
+                logger.warning(f"Time series analysis failed for column {col}: {e}")
+                time_analysis[col] = {'error': str(e)}
         return time_analysis
     
     def _find_strong_correlations(self, corr_matrix: pd.DataFrame, threshold: float = 0.7) -> List[Dict[str, Any]]:
         """Find strong correlations in correlation matrix"""
         strong_correlations = []
-        for i in range(len(corr_matrix.columns)):
-            for j in range(i+1, len(corr_matrix.columns)):
-                corr_value = corr_matrix.iloc[i, j]
-                if abs(corr_value) >= threshold:
-                    strong_correlations.append({
-                        'variable1': corr_matrix.columns[i],
-                        'variable2': corr_matrix.columns[j],
-                        'correlation': corr_value
-                    })
+        try:
+            for i in range(len(corr_matrix.columns)):
+                for j in range(i+1, len(corr_matrix.columns)):
+                    corr_value = corr_matrix.iloc[i, j]
+                    if abs(corr_value) >= threshold:
+                        strong_correlations.append({
+                            'variable1': corr_matrix.columns[i],
+                            'variable2': corr_matrix.columns[j],
+                            'correlation': float(corr_value)
+                        })
+        except Exception as e:
+            logger.warning(f"Strong correlation analysis failed: {e}")
         return strong_correlations
     
     def _has_infrastructure_data(self, dataset: pd.DataFrame) -> bool:

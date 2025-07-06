@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Simple test script for Universal Reporter - bypasses query engine
+Direct test script for Universal Reporter - minimal imports
 """
 
 import sys
@@ -35,9 +35,9 @@ def create_test_dataset():
     
     return pd.DataFrame(data)
 
-def test_universal_reporter():
-    """Test Universal Reporter functionality"""
-    print("🧪 Testing Universal Reporter Integration")
+def test_universal_reporter_direct():
+    """Test Universal Reporter functionality with direct import"""
+    print("🧪 Testing Universal Reporter Direct Integration")
     print("=" * 50)
     
     try:
@@ -46,11 +46,14 @@ def test_universal_reporter():
         test_data = create_test_dataset()
         print(f"✅ Created dataset with {len(test_data)} records and {len(test_data.columns)} columns")
         
-        # Test Universal Reporter directly
+        # Test Universal Reporter with direct import
         print("\n🔍 Testing Universal Reporter...")
         
-        # Import directly to avoid query_engine issues
-        from src.core.universal_reporter import UniversalReporter
+        # Import Universal Reporter directly
+        import sys
+        sys.path.insert(0, str(Path(__file__).parent / "src" / "core"))
+        from universal_reporter import UniversalReporter
+        
         universal_reporter = UniversalReporter()
         
         # Analyze dataset
@@ -125,11 +128,11 @@ def test_universal_reporter():
 
 def main():
     """Main test function"""
-    print("🚀 Kasmeer Universal Reporter Simple Test")
+    print("🚀 Kasmeer Universal Reporter Direct Test")
     print("=" * 60)
     
     # Test Universal Reporter
-    success = test_universal_reporter()
+    success = test_universal_reporter_direct()
     
     # Summary
     print("\n" + "=" * 60)
@@ -139,9 +142,10 @@ def main():
     if success:
         print("\n🎉 Universal Reporter test passed!")
         print("\nNext steps:")
+        print("  • Install missing dependencies: pip install rasterio")
+        print("  • Fix query_engine.py syntax errors")
         print("  • Run: python main.py universal-analyze")
         print("  • Run: python main.py analyze --comprehensive")
-        print("  • Fix query_engine.py syntax errors for full integration")
     else:
         print("\n⚠️ Test failed. Please check the errors above.")
     

@@ -30,11 +30,8 @@ def main():
         status = system.get_system_status()
         logger.info(f"System Status: {status}")
         
-        # Initialize CLI interface
+        # Start CLI interface
         cli()
-        
-        # Start CLI
-        cli.run()
         
     except KeyboardInterrupt:
         logger.info("System shutdown requested by user")

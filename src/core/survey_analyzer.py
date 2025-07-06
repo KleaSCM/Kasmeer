@@ -533,23 +533,28 @@ class SurveyAnalyzer:
                 if features['vegetation']:
                     available_features += 1
 
-            # Return ratio of available features to expected features
+            # Return ratio of available features to expected features (0.0–1.0)
             return available_features / total_features if total_features > 0 else 0.0
 
-            
         except Exception as e:
+            # Handle unexpected failures gracefully and log them
             logger.error(f"Error calculating data completeness: {e}")
             return 0.0
-    
+
+
     def _score_to_priority_level(self, score: float, features: Dict) -> str:
-        # Convert score to priority level
+        # Convert numeric priority score to a qualitative level string
         # Args:
-        #   score: Priority score
-        # Returns: Priority level string
-        critical_threshold = features.get('critical_priority_threshold', 0.8)
-        high_threshold = features.get('high_priority_threshold', 0.6)
-        medium_threshold = features.get('medium_priority_threshold', 0.4)
-        
+        #   score: Computed priority score (float between 0.0 and 1.0)
+        #   features: Configuration dictionary containing thresholds
+        # Returns:
+        #   A string representing the qualitative priority level
+
+        critical_threshold = features.get('critical_priority_threshold', 0.8)  # Above this: 'critical'
+        high_threshold = features.get('high_priority_threshold', 0.6)          # Above this: 'high'
+        medium_threshold = features.get('medium_priority_threshold', 0.4)      # Above this: 'medium'
+
+        # Compare against thresholds to assign priority level
         if score > critical_threshold:
             return 'critical'
         elif score > high_threshold:
@@ -558,18 +563,22 @@ class SurveyAnalyzer:
             return 'medium'
         else:
             return 'low'
+
     
     def _calculate_urgency(self, priority_score: float, features: Dict) -> str:
-        # Calculate urgency level
+        # Determine the urgency level of a survey based on its priority score and key risk indicators
         # Args:
-        #   priority_score: Priority score
-        #   features: Features dictionary
-        # Returns: Urgency level string
+        #   priority_score: Computed priority score for the survey
+        #   features: Feature dictionary containing thresholds and risk values
+        # Returns:
+        #   String indicating urgency level: 'low', 'medium', 'high', or 'immediate'
+
         immediate_threshold = features.get('immediate_urgency_threshold', 0.8)
         high_urgency_threshold = features.get('high_urgency_threshold', 0.6)
         medium_urgency_threshold = features.get('medium_urgency_threshold', 0.4)
         flood_risk_urgency_threshold = features.get('flood_risk_urgency_threshold', 0.7)
-        
+
+        # If the score is very high or flood risk is critical, treat as immediate
         if priority_score > immediate_threshold or features.get('flood_risk', 0) > flood_risk_urgency_threshold:
             return 'immediate'
         elif priority_score > high_urgency_threshold:
@@ -578,42 +587,50 @@ class SurveyAnalyzer:
             return 'medium'
         else:
             return 'low'
-    
+
+
     def _identify_priority_factors(self, features: Dict) -> List[str]:
-        # Identify priority factors
+        # Identify key factors contributing to elevated survey priority
         # Args:
-        #   features: Features dictionary
-        # Returns: List of priority factors
+        #   features: Feature dictionary from input data
+        # Returns:
+        #   List of human-readable strings describing priority-driving conditions
+
         factors = []
-        
+
         flood_risk_threshold = features.get('flood_risk_threshold', 0.5)
         if features.get('flood_risk', 0) > flood_risk_threshold:
             factors.append("High flood risk")
-        
+
         soil_risk_threshold = features.get('soil_risk_threshold', 0.5)
         if features.get('soil_risk', 0) > soil_risk_threshold:
             factors.append("Soil stability concerns")
-        
+
         if not features.get('infrastructure'):
             factors.append("Missing infrastructure data")
-        
+
         return factors
-    
+
+
     def _generate_survey_sequence(self, survey_priorities: Dict) -> List[str]:
-        # Generate recommended survey sequence
+        # Generate a recommended execution sequence for surveys based on descending priority
         # Args:
-        #   survey_priorities: Survey priorities dictionary
-        # Returns: List of surveys in recommended sequence
+        #   survey_priorities: Dictionary mapping survey names to priority metadata
+        # Returns:
+        #   Ordered list of survey names from highest to lowest priority
+
         try:
-            # Sort surveys by priority score (highest first)
+            # Sort surveys by their computed priority score, descending
             sorted_surveys = sorted(
                 survey_priorities.items(),
                 key=lambda x: x[1]['priority_score'],
                 reverse=True
             )
-            
+
+            # Extract only the survey names from the sorted results
             return [survey for survey, _ in sorted_surveys]
-            
+
         except Exception as e:
+            # Log and fail gracefully if priority metadata is malformed
             logger.error(f"Error generating survey sequence: {e}")
-            return [] 
+            return []
