@@ -797,10 +797,26 @@ def analyze(location: str, data_dir: str, output: str):
                     console.print(f"  • {utility}")
             
             # Environmental Context
-            if 'environmental_context' in briefing and briefing['environmental_context'].get('summary'):
+            if 'environmental_context' in briefing:
+                env_context = briefing['environmental_context']
                 console.print(f"\n[bold yellow]🌍 ENVIRONMENTAL CONTEXT[/bold yellow]")
-                for env in briefing['environmental_context']['summary']:
-                    console.print(f"  • {env}")
+                
+                # Display soil conditions with details
+                if env_context.get('soil_conditions'):
+                    console.print(f"  • Soil Conditions:")
+                    for col, soil_data in env_context['soil_conditions'].items():
+                        if isinstance(soil_data, dict):
+                            for soil_type, count in soil_data.items():
+                                percentage = (count / len(dataset)) * 100
+                                console.print(f"    - {col}: {soil_type} ({count} records, {percentage:.1f}%)")
+                        else:
+                            console.print(f"    - {col}: {soil_data}")
+                
+                # Display other environmental data
+                if env_context.get('summary'):
+                    for env in env_context['summary']:
+                        if not env.startswith('Soil:'):  # Skip soil summary since we show details above
+                            console.print(f"  • {env}")
             
             # Costs & Funding
             if 'costs_funding' in briefing and briefing['costs_funding'].get('summary'):

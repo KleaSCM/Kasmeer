@@ -31,8 +31,21 @@ class EnvironmentalAnalyzer(BaseAnalyzer):
         }
         
         # Dynamic environmental discovery
-        soil_patterns = ['soil', 'geotechnical', 'bearing_capacity', 'moisture', 'ph']
+        soil_patterns = ['soil', 'geotechnical', 'bearing_capacity', 'moisture', 'ph', 'contamination']
         soil_cols = self._find_columns_by_patterns(dataset, soil_patterns)
+        
+        # Filter out false positives for soil columns
+        filtered_soil_cols = []
+        for col in soil_cols:
+            col_lower = col.lower()
+            # Exclude columns that are clearly not soil-related
+            if any(exclude_pattern in col_lower for exclude_pattern in ['geographical', 'district', 'zone', 'area', 'region']):
+                continue
+            # Only include columns that are actually soil-related
+            if any(soil_pattern in col_lower for soil_pattern in ['soil', 'geotechnical', 'bearing', 'moisture', 'ph', 'contamination']):
+                filtered_soil_cols.append(col)
+        
+        soil_cols = filtered_soil_cols
         
         climate_patterns = ['temperature', 'rainfall', 'wind', 'humidity', 'climate']
         climate_cols = self._find_columns_by_patterns(dataset, climate_patterns)

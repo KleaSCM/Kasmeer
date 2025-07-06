@@ -657,4 +657,27 @@ class CrossDatasetAnalyzer(BaseAnalyzer):
         total_columns = sum(len(dataset.columns) for dataset in datasets.values())
         summary.append(f"Total data: {total_records:,} records, {total_columns} columns")
         
-        return summary 
+        return summary
+
+    def _analyze_dimensions(self, dataset: pd.DataFrame, dimension_cols: List[str]) -> Dict[str, Any]:
+        """Analyze dimensional data"""
+        dimensions = {}
+        for col in dimension_cols:
+            if col in dataset.columns and dataset[col].dtype in ['int64', 'float64']:
+                try:
+                    # Convert to numeric and get actual statistics
+                    numeric_data = pd.to_numeric(dataset[col], errors='coerce')
+                    import numpy as np
+                    arr = np.asarray(numeric_data)
+                    is_valid = not np.isnan(arr).all()
+                    if is_valid:
+                        dimensions[col] = {
+                            'min': float(np.nanmin(arr)),
+                            'max': float(np.nanmax(arr)),
+                            'mean': float(np.nanmean(arr)),
+                            'std': float(np.nanstd(arr)),
+                            'median': float(np.nanmedian(arr))
+                        }
+                except Exception as e:
+                    self.logger.warning(f"Dimension analysis failed for column {col}: {e}")
+        return {'dimension_statistics': dimensions} 

@@ -1,0 +1,192 @@
+{
+  "summary": {
+    "total_analyzers": 9,
+    "passed": 9,
+    "failed": 0,
+    "warnings": 0,
+    "start_time": "2025-07-06T16:16:38.244938",
+    "end_time": "2025-07-06T16:16:46.360757",
+    "total_duration": 8.115819
+  },
+  "analyzers": {
+    "Construction": {
+      "status": "passed",
+      "error": null,
+      "data_found": true,
+      "execution_time": 0.04548382759094238,
+      "output_structure": {
+        "site_materials": 7,
+        "work_history": 7,
+        "project_details": 6,
+        "summary": 2
+      },
+      "data_quality": {
+        "has_executive_summary": false,
+        "has_summary": true,
+        "total_keys": 4,
+        "non_empty_keys": 4
+      }
+    },
+    "Infrastructure": {
+      "status": "passed",
+      "error": null,
+      "data_found": true,
+      "execution_time": 0.0006804466247558594,
+      "output_structure": {
+        "utilities_infrastructure": 6,
+        "summary": 2
+      },
+      "data_quality": {
+        "has_executive_summary": false,
+        "has_summary": true,
+        "total_keys": 2,
+        "non_empty_keys": 2
+      }
+    },
+    "Environmental": {
+      "status": "passed",
+      "error": null,
+      "data_found": true,
+      "execution_time": 0.0003256797790527344,
+      "output_structure": {
+        "environmental_context": 7,
+        "summary": 2
+      },
+      "data_quality": {
+        "has_executive_summary": false,
+        "has_summary": true,
+        "total_keys": 2,
+        "non_empty_keys": 2
+      }
+    },
+    "Financial": {
+      "status": "passed",
+      "error": null,
+      "data_found": true,
+      "execution_time": 0.019873619079589844,
+      "output_structure": {
+        "costs_funding": 6,
+        "budget_analysis": 4,
+        "funding_sources": 4,
+        "summary": 3
+      },
+      "data_quality": {
+        "has_executive_summary": false,
+        "has_summary": true,
+        "total_keys": 4,
+        "non_empty_keys": 4
+      }
+    },
+    "Risk": {
+      "status": "passed",
+      "error": null,
+      "data_found": true,
+      "execution_time": 0.00047850608825683594,
+      "output_structure": {
+        "risk_assessment": 6,
+        "summary": 2
+      },
+      "data_quality": {
+        "has_executive_summary": false,
+        "has_summary": true,
+        "total_keys": 2,
+        "non_empty_keys": 2
+      }
+    },
+    "Spatial": {
+      "status": "passed",
+      "error": null,
+      "data_found": true,
+      "execution_time": 0.00027370452880859375,
+      "output_structure": {
+        "spatial_analysis": 4,
+        "summary": 2
+      },
+      "data_quality": {
+        "has_executive_summary": false,
+        "has_summary": true,
+        "total_keys": 2,
+        "non_empty_keys": 2
+      }
+    },
+    "Temporal": {
+      "status": "passed",
+      "error": null,
+      "data_found": true,
+      "execution_time": 0.0002396106719970703,
+      "output_structure": {
+        "temporal_analysis": 4,
+        "summary": 2
+      },
+      "data_quality": {
+        "has_executive_summary": false,
+        "has_summary": true,
+        "total_keys": 2,
+        "non_empty_keys": 2
+      }
+    },
+    "CrossDataset": {
+      "status": "passed",
+      "error": null,
+      "data_found": true,
+      "execution_time": 0.030930757522583008,
+      "output_structure": {
+        "cross_dataset_analysis": 5,
+        "spatial_relationships": 4,
+        "temporal_relationships": 4,
+        "data_quality_comparison": 4,
+        "correlations": 4,
+        "anomalies": 5,
+        "summary": 5
+      },
+      "data_quality": {
+        "has_executive_summary": false,
+        "has_summary": true,
+        "total_keys": 7,
+        "non_empty_keys": 7
+      }
+    },
+    "Survey": {
+      "status": "passed",
+      "error": null,
+      "data_found": true,
+      "execution_time": 0.0007441043853759766,
+      "output_structure": {
+        "required_surveys": 3,
+        "survey_methods": 6,
+        "survey_costs": 4,
+        "priority_scores": 4,
+        "data_gaps": 5,
+        "recommendations": 3,
+        "summary": 2
+      },
+      "data_quality": {
+        "has_executive_summary": false,
+        "has_summary": true,
+        "total_keys": 7,
+        "non_empty_keys": 7
+      }
+    }
+  },
+  "integration_tests": {
+    "universal_reporter": {
+      "status": "passed",
+      "execution_time": 0.18208742141723633,
+      "keys_present": 14,
+      "keys_missing": 0
+    }
+  },
+  "performance_tests": {
+    "large_dataset": {
+      "status": "passed",
+      "execution_time": 7.207013130187988,
+      "records_processed": 53350
+    }
+  },
+  "data_quality_tests": {
+    "problematic_data": {
+      "status": "passed",
+      "execution_time": 0.045313358306884766
+    }
+  }
+}
