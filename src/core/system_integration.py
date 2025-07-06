@@ -118,10 +118,11 @@ class SystemIntegration:
                 'dataset': dataset
             }
             
-            # Use available risk analyzer methods
-            risk_factors = self.risk_analyzer.analyze_risk_factors(combined_risk_data, np.array([0.5, 0.5, 0.5]))
-            confidence = self.risk_analyzer.calculate_confidence(combined_risk_data)
-            recommendations = self.risk_analyzer.generate_recommendations(np.array([0.5, 0.5, 0.5]), combined_risk_data)
+            # Use the available analyze method
+            risk_analysis_result = self.risk_analyzer.analyze(dataset)
+            risk_factors = risk_analysis_result.get('risk_assessment', {}).get('summary', [])
+            confidence = 0.8  # Default confidence
+            recommendations = risk_analysis_result.get('summary', [])
             
             risk_results = {
                 'risk_factors': risk_factors,
