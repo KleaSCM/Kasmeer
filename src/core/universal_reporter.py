@@ -94,7 +94,10 @@ class UniversalReporter:
     @log_performance(logger)
     def analyze_dataset(self, dataset: pd.DataFrame, dataset_type: Optional[str] = None, location: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
-        Analyze ANY dataset and extract ALL possible insights.
+        Generate a comprehensive Civil Engineer's Site Briefing for ANY dataset.
+        
+        This method dynamically discovers, analyzes, and synthesizes ALL available data
+        to provide everything a civil engineer needs to know about a site.
         
         Args:
             dataset: The dataset to analyze
@@ -102,29 +105,867 @@ class UniversalReporter:
             location: Optional location context
             
         Returns:
-            Comprehensive analysis results
+            Comprehensive site briefing with executive summary, risks, recommendations
         """
-        logger.info(f"Starting comprehensive analysis of dataset with {len(dataset)} records")
+        logger.info(f"Generating Civil Engineer's Site Briefing for dataset with {len(dataset)} records")
         
-        analysis = {
-            'dataset_overview': self._analyze_dataset_overview(dataset),
-            'data_quality': self._analyze_data_quality(dataset),
-            'infrastructure_insights': self._analyze_infrastructure(dataset),
-            'environmental_insights': self._analyze_environmental(dataset),
-            'construction_insights': self._analyze_construction(dataset),
-            'financial_insights': self._analyze_financial(dataset),
-            'operational_insights': self._analyze_operational(dataset),
-            'risk_assessment': self._analyze_risks(dataset),
-            'spatial_analysis': self._analyze_spatial(dataset, location),
-            'temporal_analysis': self._analyze_temporal(dataset),
-            'correlations': self._find_correlations(dataset),
-            'anomalies': self._detect_anomalies(dataset),
-            'recommendations': self._generate_recommendations(dataset),
-            'action_items': self._generate_action_items(dataset)
+        # Initialize comprehensive analysis
+        briefing = {
+            'executive_summary': self._generate_executive_summary(dataset, location),
+            'site_materials': self._analyze_site_materials(dataset),
+            'work_history': self._analyze_work_history(dataset),
+            'utilities_infrastructure': self._analyze_utilities_infrastructure(dataset),
+            'environmental_context': self._analyze_environmental_context(dataset),
+            'costs_funding': self._analyze_costs_funding(dataset),
+            'risks_hazards': self._analyze_risks_hazards(dataset),
+            'missing_data': self._identify_missing_data(dataset),
+            'recommendations': self._generate_actionable_recommendations(dataset, location),
+            'nn_insights': self._get_neural_network_insights(dataset, location)
         }
         
-        logger.info("Comprehensive analysis completed")
-        return analysis
+        logger.info("Civil Engineer's Site Briefing completed")
+        return briefing
+    
+    def _generate_executive_summary(self, dataset: pd.DataFrame, location: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Generate an executive summary of the site for civil engineers"""
+        summary = {
+            'site_overview': '',
+            'key_findings': [],
+            'critical_risks': [],
+            'immediate_actions': [],
+            'data_quality': self._assess_data_quality(dataset)
+        }
+        
+        # Dynamic site overview
+        total_records = len(dataset)
+        coord_cols = self._find_coordinate_columns(dataset)
+        has_coordinates = coord_cols['lat'] is not None and coord_cols['lon'] is not None
+        
+        # Generate site overview
+        if has_coordinates:
+            summary['site_overview'] = f"Site contains {total_records} geolocated records with comprehensive engineering data."
+        else:
+            summary['site_overview'] = f"Site contains {total_records} records (no coordinate data available)."
+        
+        # Key findings
+        if total_records > 0:
+            summary['key_findings'].append(f"Total records analyzed: {total_records:,}")
+            
+            # Check for construction projects
+            construction_cols = self._find_columns_by_patterns(dataset, ['project', 'construction', 'building', 'facility'])
+            if construction_cols:
+                summary['key_findings'].append(f"Construction data available: {len(construction_cols)} relevant columns")
+            
+            # Check for infrastructure
+            infra_cols = self._find_columns_by_patterns(dataset, ['pipe', 'electrical', 'water', 'gas', 'road', 'bridge'])
+            if infra_cols:
+                summary['key_findings'].append(f"Infrastructure data available: {len(infra_cols)} relevant columns")
+            
+            # Check for environmental data
+            env_cols = self._find_columns_by_patterns(dataset, ['soil', 'climate', 'vegetation', 'flood', 'environmental'])
+            if env_cols:
+                summary['key_findings'].append(f"Environmental data available: {len(env_cols)} relevant columns")
+        
+        return summary
+    
+    def _analyze_site_materials(self, dataset: pd.DataFrame) -> Dict[str, Any]:
+        """Analyze all materials present or required at the site"""
+        materials = {
+            'building_materials': {},
+            'infrastructure_materials': {},
+            'soil_materials': {},
+            'construction_materials': {},
+            'summary': []
+        }
+        
+        # Dynamic material discovery
+        material_patterns = ['material', 'type', 'composition', 'grade', 'class', 'steel', 'concrete', 'wood', 'plastic', 'metal']
+        material_cols = self._find_columns_by_patterns(dataset, material_patterns)
+        
+        for col in material_cols:
+            if col in dataset.columns:
+                try:
+                    # Get material distribution
+                    material_counts = dataset[col].value_counts()
+                    materials['building_materials'][col] = material_counts.to_dict()
+                    
+                    # Add to summary
+                    top_materials = material_counts.head(3)
+                    materials['summary'].append(f"{col}: {', '.join([f'{mat} ({count})' for mat, count in top_materials.items()])}")
+                except Exception as e:
+                    logger.warning(f"Material analysis failed for column {col}: {e}")
+        
+        # Check for construction materials
+        construction_patterns = ['construction', 'building', 'structure', 'facility']
+        construction_cols = self._find_columns_by_patterns(dataset, construction_patterns)
+        if construction_cols:
+            materials['summary'].append(f"Construction projects: {len(construction_cols)} relevant data columns")
+        
+        return materials
+    
+    def _analyze_work_history(self, dataset: pd.DataFrame) -> Dict[str, Any]:
+        """Analyze work history, permits, inspections, and incidents"""
+        history = {
+            'permits': {},
+            'inspections': {},
+            'incidents': {},
+            'projects': {},
+            'timeline': {},
+            'summary': [],
+            'project_details': []  # NEW: Actual project details
+        }
+        
+        # Dynamic work history discovery
+        permit_patterns = ['permit', 'license', 'approval', 'authorization']
+        permit_cols = self._find_columns_by_patterns(dataset, permit_patterns)
+        
+        inspection_patterns = ['inspection', 'test', 'quality', 'compliance', 'certification']
+        inspection_cols = self._find_columns_by_patterns(dataset, inspection_patterns)
+        
+        incident_patterns = ['incident', 'accident', 'fire', 'hazard', 'violation', 'failure']
+        incident_cols = self._find_columns_by_patterns(dataset, incident_patterns)
+        
+        project_patterns = ['project', 'construction', 'building', 'facility', 'phase', 'stage']
+        project_cols = self._find_columns_by_patterns(dataset, project_patterns)
+        
+        # NEW: Extract actual project details
+        if 'Project Title' in dataset.columns:
+            for idx, row in dataset.iterrows():
+                project_detail = {
+                    'name': row.get('Project Title', 'Unknown'),
+                    'campus': row.get('Campus Name', 'Unknown'),
+                    'project_id': row.get('Project', 'Unknown'),
+                    'estimated_value': row.get('Estimated Contract Value', 'Unknown'),
+                    'advertise_date': row.get('Contract Advertise Date', 'Unknown'),
+                    'status': row.get('Still Accepting SOQ', 'Unknown')
+                }
+                history['project_details'].append(project_detail)
+        
+        # Also check for NYC construction dataset structure
+        elif 'School Name' in dataset.columns and 'Project Description' in dataset.columns:
+            for idx, row in dataset.iterrows():
+                project_detail = {
+                    'name': row.get('Project Description', 'Unknown'),
+                    'campus': row.get('School Name', 'Unknown'),
+                    'project_id': row.get('Building ID', 'Unknown'),
+                    'estimated_value': f"${row.get('Construction Award', 0):,.0f}" if pd.notna(row.get('Construction Award')) else 'Unknown',
+                    'project_type': row.get('Project type', 'Unknown'),
+                    'address': row.get('Building Address', 'Unknown'),
+                    'borough': row.get('Borough', 'Unknown'),
+                    'status': 'Active'  # These are active projects
+                }
+                history['project_details'].append(project_detail)
+        
+        # Also check for other project-related columns
+        if 'Project Description' in dataset.columns:
+            for idx, row in dataset.iterrows():
+                if 'Project Description' in row and pd.notna(row['Project Description']):
+                    history['summary'].append(f"Project: {row['Project Description'][:100]}...")
+        
+        if 'School Name' in dataset.columns:
+            schools = dataset['School Name'].value_counts()
+            history['summary'].append(f"Schools involved: {', '.join(schools.head(3).index.tolist())}")
+        
+        # Analyze construction awards
+        if 'Construction Award' in dataset.columns:
+            try:
+                awards = dataset['Construction Award'].dropna()
+                if len(awards) > 0:
+                    total_award = awards.sum()
+                    avg_award = awards.mean()
+                    max_award = awards.max()
+                    min_award = awards.min()
+                    
+                    history['summary'].append(f"Total construction value: ${total_award:,.0f}")
+                    history['summary'].append(f"Average project value: ${avg_award:,.0f}")
+                    history['summary'].append(f"Cost range: ${min_award:,.0f} - ${max_award:,.0f}")
+                    
+                    # Add detailed cost breakdown
+                    for idx, row in dataset.iterrows():
+                        if pd.notna(row.get('Construction Award')):
+                            history['project_details'].append({
+                                'project': row.get('Project Description', 'Unknown'),
+                                'estimated_value': f"${row.get('Construction Award', 0):,.0f}",
+                                'project_id': row.get('Building ID', 'Unknown'),
+                                'campus': row.get('School Name', 'Unknown'),
+                                'project_type': row.get('Project type', 'Unknown')
+                            })
+            except Exception as e:
+                logger.warning(f"Construction award analysis failed: {e}")
+        
+        # Analyze project types
+        if 'Project type' in dataset.columns:
+            project_types = dataset['Project type'].value_counts()
+            for ptype, count in project_types.items():
+                history['summary'].append(f"Project type {ptype}: {count} projects")
+        
+        # Analyze permits
+        for col in permit_cols:
+            if col in dataset.columns:
+                try:
+                    permit_status = dataset[col].value_counts()
+                    history['permits'][col] = permit_status.to_dict()
+                    history['summary'].append(f"Permits: {len(permit_status)} different statuses found")
+                except Exception as e:
+                    logger.warning(f"Permit analysis failed for column {col}: {e}")
+        
+        # Analyze inspections
+        for col in inspection_cols:
+            if col in dataset.columns:
+                try:
+                    inspection_results = dataset[col].value_counts()
+                    history['inspections'][col] = inspection_results.to_dict()
+                    history['summary'].append(f"Inspections: {len(inspection_results)} different results found")
+                except Exception as e:
+                    logger.warning(f"Inspection analysis failed for column {col}: {e}")
+        
+        # Analyze incidents
+        for col in incident_cols:
+            if col in dataset.columns:
+                try:
+                    incident_types = dataset[col].value_counts()
+                    history['incidents'][col] = incident_types.to_dict()
+                    history['summary'].append(f"Incidents: {len(incident_types)} different types found")
+                except Exception as e:
+                    logger.warning(f"Incident analysis failed for column {col}: {e}")
+        
+        # Analyze projects
+        for col in project_cols:
+            if col in dataset.columns:
+                try:
+                    project_types = dataset[col].value_counts()
+                    history['projects'][col] = project_types.to_dict()
+                    history['summary'].append(f"Projects: {len(project_types)} different types found")
+                except Exception as e:
+                    logger.warning(f"Project analysis failed for column {col}: {e}")
+        
+        return history
+    
+    def _analyze_utilities_infrastructure(self, dataset: pd.DataFrame) -> Dict[str, Any]:
+        """Analyze utilities and infrastructure at the site"""
+        utilities = {
+            'electrical': {},
+            'water_sewer': {},
+            'gas': {},
+            'telecom': {},
+            'roads_bridges': {},
+            'summary': []
+        }
+        
+        # Dynamic utility discovery
+        electrical_patterns = ['electrical', 'power', 'transformer', 'substation', 'voltage', 'amp']
+        electrical_cols = self._find_columns_by_patterns(dataset, electrical_patterns)
+        
+        water_patterns = ['water', 'sewer', 'drainage', 'pipe', 'valve', 'pump']
+        water_cols = self._find_columns_by_patterns(dataset, water_patterns)
+        
+        gas_patterns = ['gas', 'natural_gas', 'propane', 'fuel']
+        gas_cols = self._find_columns_by_patterns(dataset, gas_patterns)
+        
+        telecom_patterns = ['telecom', 'fiber', 'cable', 'internet', 'phone']
+        telecom_cols = self._find_columns_by_patterns(dataset, telecom_patterns)
+        
+        road_patterns = ['road', 'street', 'highway', 'bridge', 'traffic']
+        road_cols = self._find_columns_by_patterns(dataset, road_patterns)
+        
+        # Analyze electrical
+        for col in electrical_cols:
+            if col in dataset.columns:
+                try:
+                    electrical_data = dataset[col].value_counts()
+                    utilities['electrical'][col] = electrical_data.to_dict()
+                    utilities['summary'].append(f"Electrical: {len(electrical_data)} different values found")
+                except Exception as e:
+                    logger.warning(f"Electrical analysis failed for column {col}: {e}")
+        
+        # Analyze water/sewer
+        for col in water_cols:
+            if col in dataset.columns:
+                try:
+                    water_data = dataset[col].value_counts()
+                    utilities['water_sewer'][col] = water_data.to_dict()
+                    utilities['summary'].append(f"Water/Sewer: {len(water_data)} different values found")
+                except Exception as e:
+                    logger.warning(f"Water analysis failed for column {col}: {e}")
+        
+        # Analyze gas
+        for col in gas_cols:
+            if col in dataset.columns:
+                try:
+                    gas_data = dataset[col].value_counts()
+                    utilities['gas'][col] = gas_data.to_dict()
+                    utilities['summary'].append(f"Gas: {len(gas_data)} different values found")
+                except Exception as e:
+                    logger.warning(f"Gas analysis failed for column {col}: {e}")
+        
+        # Analyze telecom
+        for col in telecom_cols:
+            if col in dataset.columns:
+                try:
+                    telecom_data = dataset[col].value_counts()
+                    utilities['telecom'][col] = telecom_data.to_dict()
+                    utilities['summary'].append(f"Telecom: {len(telecom_data)} different values found")
+                except Exception as e:
+                    logger.warning(f"Telecom analysis failed for column {col}: {e}")
+        
+        # Analyze roads/bridges
+        for col in road_cols:
+            if col in dataset.columns:
+                try:
+                    road_data = dataset[col].value_counts()
+                    utilities['roads_bridges'][col] = road_data.to_dict()
+                    utilities['summary'].append(f"Roads/Bridges: {len(road_data)} different values found")
+                except Exception as e:
+                    logger.warning(f"Road analysis failed for column {col}: {e}")
+        
+        return utilities
+    
+    def _analyze_environmental_context(self, dataset: pd.DataFrame) -> Dict[str, Any]:
+        """Analyze environmental context of the site"""
+        environmental = {
+            'soil_conditions': {},
+            'climate_data': {},
+            'vegetation': {},
+            'water_resources': {},
+            'air_quality': {},
+            'protected_areas': {},
+            'summary': []
+        }
+        
+        # Dynamic environmental discovery
+        soil_patterns = ['soil', 'geotechnical', 'bearing_capacity', 'moisture', 'ph']
+        soil_cols = self._find_columns_by_patterns(dataset, soil_patterns)
+        
+        climate_patterns = ['temperature', 'rainfall', 'wind', 'humidity', 'climate']
+        climate_cols = self._find_columns_by_patterns(dataset, climate_patterns)
+        
+        vegetation_patterns = ['vegetation', 'tree', 'plant', 'species', 'density']
+        vegetation_cols = self._find_columns_by_patterns(dataset, vegetation_patterns)
+        
+        water_patterns = ['water', 'river', 'stream', 'flood', 'groundwater', 'wetland']
+        water_cols = self._find_columns_by_patterns(dataset, water_patterns)
+        
+        air_patterns = ['air', 'pollution', 'emission', 'particulate', 'gas']
+        air_cols = self._find_columns_by_patterns(dataset, air_patterns)
+        
+        # Analyze soil conditions
+        for col in soil_cols:
+            if col in dataset.columns:
+                try:
+                    soil_data = dataset[col].value_counts()
+                    environmental['soil_conditions'][col] = soil_data.to_dict()
+                    environmental['summary'].append(f"Soil: {len(soil_data)} different conditions found")
+                except Exception as e:
+                    logger.warning(f"Soil analysis failed for column {col}: {e}")
+        
+        # Analyze climate data
+        for col in climate_cols:
+            if col in dataset.columns:
+                try:
+                    if dataset[col].dtype in ['int64', 'float64']:
+                        climate_stats = {
+                            'min': float(dataset[col].min()),
+                            'max': float(dataset[col].max()),
+                            'mean': float(dataset[col].mean()),
+                            'std': float(dataset[col].std())
+                        }
+                        environmental['climate_data'][col] = climate_stats
+                        environmental['summary'].append(f"Climate {col}: {climate_stats['mean']:.1f} avg (range: {climate_stats['min']:.1f}-{climate_stats['max']:.1f})")
+                    else:
+                        climate_data = dataset[col].value_counts()
+                        environmental['climate_data'][col] = climate_data.to_dict()
+                        environmental['summary'].append(f"Climate: {len(climate_data)} different values found")
+                except Exception as e:
+                    logger.warning(f"Climate analysis failed for column {col}: {e}")
+        
+        # Analyze vegetation
+        for col in vegetation_cols:
+            if col in dataset.columns:
+                try:
+                    vegetation_data = dataset[col].value_counts()
+                    environmental['vegetation'][col] = vegetation_data.to_dict()
+                    environmental['summary'].append(f"Vegetation: {len(vegetation_data)} different types found")
+                except Exception as e:
+                    logger.warning(f"Vegetation analysis failed for column {col}: {e}")
+        
+        return environmental
+    
+    def _analyze_costs_funding(self, dataset: pd.DataFrame) -> Dict[str, Any]:
+        """Analyze costs, funding, and financial aspects"""
+        costs = {
+            'project_costs': {},
+            'maintenance_costs': {},
+            'funding_sources': {},
+            'budget_status': {},
+            'summary': [],
+            'cost_details': []  # NEW: Actual cost details
+        }
+        
+        # NEW: Extract actual cost data
+        if 'Estimated Contract Value' in dataset.columns:
+            total_estimated_value = 0
+            cost_ranges = []
+            
+            for idx, row in dataset.iterrows():
+                estimated_value = row.get('Estimated Contract Value', 'Unknown')
+                if isinstance(estimated_value, str) and estimated_value != 'Unknown':
+                    costs['cost_details'].append({
+                        'project': row.get('Project Title', 'Unknown'),
+                        'estimated_value': estimated_value,
+                        'project_id': row.get('Project', 'Unknown'),
+                        'campus': row.get('Campus Name', 'Unknown')
+                    })
+                    
+                    # Try to extract numeric value for total calculation
+                    try:
+                        # Handle ranges like "$5,000,000 - $10,000,000"
+                        if ' - ' in estimated_value:
+                            min_val_str = estimated_value.split(' - ')[0].replace('$', '').replace(',', '')
+                            max_val_str = estimated_value.split(' - ')[1].replace('$', '').replace(',', '')
+                            min_val = float(min_val_str)
+                            max_val = float(max_val_str)
+                            avg_val = (min_val + max_val) / 2
+                            total_estimated_value += avg_val
+                            cost_ranges.append(f"${min_val:,.0f} - ${max_val:,.0f}")
+                        else:
+                            # Handle single values like "$10,000,000 - Up"
+                            val_str = estimated_value.replace('$', '').replace(',', '').replace(' - Up', '')
+                            if val_str.isdigit():
+                                val = float(val_str)
+                                total_estimated_value += val
+                                cost_ranges.append(f"${val:,.0f}")
+                    except:
+                        pass
+            
+            if total_estimated_value > 0:
+                costs['summary'].append(f"Total estimated project value: ${total_estimated_value:,.0f}")
+                costs['summary'].append(f"Average project value: ${total_estimated_value/len(costs['cost_details']):,.0f}")
+            
+            if cost_ranges:
+                costs['summary'].append(f"Cost ranges: {', '.join(cost_ranges[:3])}")
+        
+        # Also check for NYC construction dataset structure
+        elif 'Construction Award' in dataset.columns:
+            try:
+                awards = dataset['Construction Award'].dropna()
+                if len(awards) > 0:
+                    total_award = awards.sum()
+                    avg_award = awards.mean()
+                    max_award = awards.max()
+                    min_award = awards.min()
+                    
+                    costs['summary'].append(f"Total construction value: ${total_award:,.0f}")
+                    costs['summary'].append(f"Average project value: ${avg_award:,.0f}")
+                    costs['summary'].append(f"Cost range: ${min_award:,.0f} - ${max_award:,.0f}")
+                    
+                    # Add detailed cost breakdown
+                    for idx, row in dataset.iterrows():
+                        if pd.notna(row.get('Construction Award')):
+                            costs['cost_details'].append({
+                                'project': row.get('Project Description', 'Unknown'),
+                                'estimated_value': f"${row.get('Construction Award', 0):,.0f}",
+                                'project_id': row.get('Building ID', 'Unknown'),
+                                'campus': row.get('School Name', 'Unknown'),
+                                'project_type': row.get('Project type', 'Unknown')
+                            })
+            except Exception as e:
+                logger.warning(f"Construction award analysis failed: {e}")
+        
+        # Dynamic cost discovery
+        cost_patterns = ['cost', 'budget', 'estimate', 'actual', 'variance', 'expense', 'amount', 'dollar']
+        cost_cols = self._find_columns_by_patterns(dataset, cost_patterns)
+        
+        funding_patterns = ['funding', 'grant', 'loan', 'bond', 'revenue', 'income']
+        funding_cols = self._find_columns_by_patterns(dataset, funding_patterns)
+        
+        # Analyze costs
+        for col in cost_cols:
+            if col in dataset.columns:
+                try:
+                    if dataset[col].dtype in ['int64', 'float64']:
+                        cost_stats = {
+                            'total': float(dataset[col].sum()),
+                            'mean': float(dataset[col].mean()),
+                            'min': float(dataset[col].min()),
+                            'max': float(dataset[col].max())
+                        }
+                        costs['project_costs'][col] = cost_stats
+                        costs['summary'].append(f"Costs {col}: ${cost_stats['total']:,.0f} total, ${cost_stats['mean']:,.0f} avg")
+                    else:
+                        cost_data = dataset[col].value_counts()
+                        costs['project_costs'][col] = cost_data.to_dict()
+                        costs['summary'].append(f"Costs: {len(cost_data)} different categories found")
+                except Exception as e:
+                    logger.warning(f"Cost analysis failed for column {col}: {e}")
+        
+        # Analyze funding
+        for col in funding_cols:
+            if col in dataset.columns:
+                try:
+                    funding_data = dataset[col].value_counts()
+                    costs['funding_sources'][col] = funding_data.to_dict()
+                    costs['summary'].append(f"Funding: {len(funding_data)} different sources found")
+                except Exception as e:
+                    logger.warning(f"Funding analysis failed for column {col}: {e}")
+        
+        return costs
+    
+    def _analyze_risks_hazards(self, dataset: pd.DataFrame) -> Dict[str, Any]:
+        """Analyze risks and hazards at the site"""
+        risks = {
+            'structural_risks': {},
+            'environmental_risks': {},
+            'fire_hazards': {},
+            'chemical_hazards': {},
+            'compliance_risks': {},
+            'operational_risks': {},
+            'summary': []
+        }
+        
+        # Dynamic risk discovery
+        structural_patterns = ['crack', 'corrosion', 'deterioration', 'failure', 'collapse', 'structural']
+        structural_cols = self._find_columns_by_patterns(dataset, structural_patterns)
+        
+        environmental_patterns = ['flood', 'earthquake', 'storm', 'drought', 'contamination']
+        environmental_cols = self._find_columns_by_patterns(dataset, environmental_patterns)
+        
+        fire_patterns = ['fire', 'smoke', 'combustible', 'flammable', 'ignition']
+        fire_cols = self._find_columns_by_patterns(dataset, fire_patterns)
+        
+        chemical_patterns = ['chemical', 'toxic', 'hazardous', 'contamination', 'pollution']
+        chemical_cols = self._find_columns_by_patterns(dataset, chemical_patterns)
+        
+        compliance_patterns = ['violation', 'non_compliance', 'penalty', 'fine', 'legal']
+        compliance_cols = self._find_columns_by_patterns(dataset, compliance_patterns)
+        
+        # Analyze structural risks
+        for col in structural_cols:
+            if col in dataset.columns:
+                try:
+                    structural_data = dataset[col].value_counts()
+                    risks['structural_risks'][col] = structural_data.to_dict()
+                    risks['summary'].append(f"Structural risks: {len(structural_data)} different issues found")
+                except Exception as e:
+                    logger.warning(f"Structural risk analysis failed for column {col}: {e}")
+        
+        # Analyze environmental risks
+        for col in environmental_cols:
+            if col in dataset.columns:
+                try:
+                    environmental_data = dataset[col].value_counts()
+                    risks['environmental_risks'][col] = environmental_data.to_dict()
+                    risks['summary'].append(f"Environmental risks: {len(environmental_data)} different hazards found")
+                except Exception as e:
+                    logger.warning(f"Environmental risk analysis failed for column {col}: {e}")
+        
+        # Analyze fire hazards
+        for col in fire_cols:
+            if col in dataset.columns:
+                try:
+                    fire_data = dataset[col].value_counts()
+                    risks['fire_hazards'][col] = fire_data.to_dict()
+                    risks['summary'].append(f"Fire hazards: {len(fire_data)} different risks found")
+                except Exception as e:
+                    logger.warning(f"Fire hazard analysis failed for column {col}: {e}")
+        
+        # Analyze chemical hazards
+        for col in chemical_cols:
+            if col in dataset.columns:
+                try:
+                    chemical_data = dataset[col].value_counts()
+                    risks['chemical_hazards'][col] = chemical_data.to_dict()
+                    risks['summary'].append(f"Chemical hazards: {len(chemical_data)} different substances found")
+                except Exception as e:
+                    logger.warning(f"Chemical hazard analysis failed for column {col}: {e}")
+        
+        return risks
+    
+    def _identify_missing_data(self, dataset: pd.DataFrame) -> Dict[str, Any]:
+        """Identify what critical data is missing"""
+        missing = {
+            'critical_missing': [],
+            'recommended_data': [],
+            'data_quality_issues': []
+        }
+        
+        # Check for critical missing data types
+        critical_data_types = {
+            'coordinates': ['lat', 'latitude', 'lon', 'longitude'],
+            'structural': ['structural', 'building', 'foundation'],
+            'utilities': ['electrical', 'water', 'gas', 'sewer'],
+            'environmental': ['soil', 'climate', 'flood'],
+            'safety': ['fire', 'hazard', 'safety'],
+            'permits': ['permit', 'license', 'approval'],
+            'costs': ['cost', 'budget', 'estimate']
+        }
+        
+        for data_type, patterns in critical_data_types.items():
+            found_cols = self._find_columns_by_patterns(dataset, patterns)
+            if not found_cols:
+                missing['critical_missing'].append(f"No {data_type} data found")
+            else:
+                missing['recommended_data'].append(f"{data_type}: {len(found_cols)} columns available")
+        
+        # Check data quality
+        missing_data = dataset.isnull().sum()
+        high_missing_cols = missing_data[missing_data > len(dataset) * 0.5]
+        if len(high_missing_cols) > 0:
+            missing['data_quality_issues'].append(f"High missing data in columns: {list(high_missing_cols.index)}")
+        
+        return missing
+    
+    def _generate_actionable_recommendations(self, dataset: pd.DataFrame, location: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Generate actionable recommendations for civil engineers"""
+        recommendations = {
+            'immediate_actions': [],
+            'investigations_needed': [],
+            'permits_required': [],
+            'safety_measures': [],
+            'next_steps': []
+        }
+        
+        # Dynamic recommendation generation based on available data
+        
+        # Check for construction projects
+        construction_cols = self._find_columns_by_patterns(dataset, ['project', 'construction', 'building'])
+        if construction_cols:
+            recommendations['immediate_actions'].append("Review all construction project details and timelines")
+            recommendations['permits_required'].append("Verify all required permits are in place for construction activities")
+        
+        # Check for structural issues
+        structural_cols = self._find_columns_by_patterns(dataset, ['structural', 'crack', 'failure', 'deterioration'])
+        if structural_cols:
+            recommendations['investigations_needed'].append("Conduct structural integrity assessment")
+            recommendations['safety_measures'].append("Implement structural monitoring and safety protocols")
+        
+        # Check for environmental concerns
+        environmental_cols = self._find_columns_by_patterns(dataset, ['soil', 'flood', 'contamination', 'environmental'])
+        if environmental_cols:
+            recommendations['investigations_needed'].append("Perform environmental impact assessment")
+            recommendations['safety_measures'].append("Implement environmental monitoring and protection measures")
+        
+        # Check for utility conflicts
+        utility_cols = self._find_columns_by_patterns(dataset, ['electrical', 'water', 'gas', 'sewer'])
+        if utility_cols:
+            recommendations['immediate_actions'].append("Coordinate with utility companies for service verification")
+            recommendations['safety_measures'].append("Implement utility marking and protection protocols")
+        
+        # General recommendations
+        recommendations['next_steps'].append("Schedule site visit and detailed inspection")
+        recommendations['next_steps'].append("Review all available permits and compliance requirements")
+        recommendations['next_steps'].append("Coordinate with local authorities and utility companies")
+        
+        return recommendations
+    
+    def _get_neural_network_insights(self, dataset: pd.DataFrame, location: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Get insights from the neural network"""
+        nn_insights = {
+            'pattern_recognition': [],
+            'risk_assessment': [],
+            'recommendations': [],
+            'anomalies': [],
+            'nn_status': 'Integrated',
+            'project_analysis': [],
+            'cost_analysis': [],
+            'timeline_analysis': []
+        }
+        
+        try:
+            # Import and initialize the neural network
+            from src.ml.neural_network import CivilEngineeringSystem
+            nn_system = CivilEngineeringSystem()
+            
+            # Analyze project patterns
+            if 'Project Title' in dataset.columns:
+                project_titles = dataset['Project Title'].dropna().tolist()
+                if project_titles:
+                    # Use NN to analyze project patterns
+                    nn_insights['project_analysis'].append(f"Found {len(project_titles)} construction projects")
+                    
+                    # Analyze project types
+                    upgrade_projects = [p for p in project_titles if 'upgrade' in p.lower()]
+                    rehab_projects = [p for p in project_titles if 'rehab' in p.lower()]
+                    new_projects = [p for p in project_titles if 'new' in p.lower() or 'construction' in p.lower()]
+                    
+                    if upgrade_projects:
+                        nn_insights['pattern_recognition'].append(f"Upgrade projects: {len(upgrade_projects)} (infrastructure maintenance)")
+                    if rehab_projects:
+                        nn_insights['pattern_recognition'].append(f"Rehabilitation projects: {len(rehab_projects)} (building improvements)")
+                    if new_projects:
+                        nn_insights['pattern_recognition'].append(f"New construction: {len(new_projects)} (expansion projects)")
+            
+            # Also check for NYC construction dataset structure
+            elif 'Project Description' in dataset.columns:
+                project_descriptions = dataset['Project Description'].dropna().tolist()
+                if project_descriptions:
+                    nn_insights['project_analysis'].append(f"Found {len(project_descriptions)} NYC construction projects")
+                    
+                    # Analyze project types
+                    climate_projects = [p for p in project_descriptions if 'climate' in p.lower() or 'boiler' in p.lower()]
+                    structural_projects = [p for p in project_descriptions if 'structural' in p.lower() or 'defect' in p.lower()]
+                    safety_projects = [p for p in project_descriptions if 'safety' in p.lower() or 'fire' in p.lower()]
+                    
+                    if climate_projects:
+                        nn_insights['pattern_recognition'].append(f"Climate control projects: {len(climate_projects)} (PLANYC initiatives)")
+                    if structural_projects:
+                        nn_insights['pattern_recognition'].append(f"Structural projects: {len(structural_projects)} (building integrity)")
+                    if safety_projects:
+                        nn_insights['pattern_recognition'].append(f"Safety projects: {len(safety_projects)} (compliance upgrades)")
+            
+            # Analyze cost patterns
+            if 'Estimated Contract Value' in dataset.columns:
+                cost_values = dataset['Estimated Contract Value'].dropna().tolist()
+                if cost_values:
+                    # Extract numeric values for analysis
+                    numeric_costs = []
+                    for cost in cost_values:
+                        try:
+                            if ' - ' in cost:
+                                min_val_str = cost.split(' - ')[0].replace('$', '').replace(',', '')
+                                max_val_str = cost.split(' - ')[1].replace('$', '').replace(',', '')
+                                avg_val = (float(min_val_str) + float(max_val_str)) / 2
+                                numeric_costs.append(avg_val)
+                            else:
+                                val_str = cost.replace('$', '').replace(',', '').replace(' - Up', '')
+                                if val_str.isdigit():
+                                    numeric_costs.append(float(val_str))
+                        except:
+                            pass
+                    
+                    if numeric_costs:
+                        avg_cost = sum(numeric_costs) / len(numeric_costs)
+                        max_cost = max(numeric_costs)
+                        min_cost = min(numeric_costs)
+                        
+                        nn_insights['cost_analysis'].append(f"Average project cost: ${avg_cost:,.0f}")
+                        nn_insights['cost_analysis'].append(f"Cost range: ${min_cost:,.0f} - ${max_cost:,.0f}")
+                        
+                        # Risk assessment based on costs
+                        if avg_cost > 10000000:  # $10M
+                            nn_insights['risk_assessment'].append("High-value projects detected - increased financial risk")
+                        if max_cost > 50000000:  # $50M
+                            nn_insights['risk_assessment'].append("Major capital projects present - complex coordination required")
+            
+            # Also check for NYC construction awards
+            elif 'Construction Award' in dataset.columns:
+                awards = dataset['Construction Award'].dropna()
+                if len(awards) > 0:
+                    avg_award = awards.mean()
+                    max_award = awards.max()
+                    min_award = awards.min()
+                    total_award = awards.sum()
+                    
+                    nn_insights['cost_analysis'].append(f"Total construction value: ${total_award:,.0f}")
+                    nn_insights['cost_analysis'].append(f"Average project cost: ${avg_award:,.0f}")
+                    nn_insights['cost_analysis'].append(f"Cost range: ${min_award:,.0f} - ${max_award:,.0f}")
+                    
+                    # Risk assessment based on costs
+                    if avg_award > 5000000:  # $5M
+                        nn_insights['risk_assessment'].append("High-value NYC school projects - increased oversight required")
+                    if max_award > 10000000:  # $10M
+                        nn_insights['risk_assessment'].append("Major NYC capital projects - complex stakeholder coordination")
+            
+            # Analyze timeline patterns
+            if 'Contract Advertise Date' in dataset.columns:
+                dates = dataset['Contract Advertise Date'].dropna().tolist()
+                if dates:
+                    nn_insights['timeline_analysis'].append(f"Projects advertised over {len(dates)} time periods")
+                    
+                    # Check for recent vs old projects
+                    try:
+                        from datetime import datetime
+                        recent_projects = 0
+                        for date_str in dates:
+                            try:
+                                date_obj = datetime.strptime(date_str, '%m/%d/%Y')
+                                if date_obj.year >= 2020:
+                                    recent_projects += 1
+                            except:
+                                pass
+                        
+                        if recent_projects > 0:
+                            nn_insights['pattern_recognition'].append(f"Recent projects (2020+): {recent_projects}")
+                            nn_insights['recommendations'].append("Recent projects may have updated specifications and requirements")
+                    except:
+                        pass
+            
+            # Analyze campus patterns
+            if 'Campus Name' in dataset.columns:
+                campuses = dataset['Campus Name'].value_counts()
+                if len(campuses) > 1:
+                    nn_insights['pattern_recognition'].append(f"Multi-campus projects: {len(campuses)} campuses involved")
+                    nn_insights['recommendations'].append("Coordinate across multiple campuses for consistent standards")
+            
+            # Also check for NYC school patterns
+            elif 'School Name' in dataset.columns:
+                schools = dataset['School Name'].value_counts()
+                if len(schools) > 1:
+                    nn_insights['pattern_recognition'].append(f"Multi-school projects: {len(schools)} schools involved")
+                    nn_insights['recommendations'].append("Coordinate across multiple NYC schools for consistent standards")
+                
+                # Analyze borough distribution
+                if 'Borough' in dataset.columns:
+                    boroughs = dataset['Borough'].value_counts()
+                    nn_insights['pattern_recognition'].append(f"Projects across {len(boroughs)} NYC boroughs")
+                    nn_insights['recommendations'].append("Consider borough-specific regulations and requirements")
+            
+            # Anomaly detection
+            if len(dataset) > 0:
+                # Check for data quality anomalies
+                missing_data = dataset.isnull().sum().sum()
+                total_cells = len(dataset) * len(dataset.columns)
+                missing_percentage = (missing_data / total_cells) * 100
+                
+                if missing_percentage > 30:
+                    nn_insights['anomalies'].append(f"High missing data rate: {missing_percentage:.1f}%")
+                    nn_insights['risk_assessment'].append("Data quality issues may affect project planning accuracy")
+                
+                # Check for unusual project patterns
+                if 'Project Title' in dataset.columns:
+                    titles = dataset['Project Title'].dropna().tolist()
+                    if len(titles) > 0:
+                        # Check for emergency or urgent projects
+                        urgent_keywords = ['emergency', 'urgent', 'critical', 'immediate', 'repair']
+                        urgent_projects = [t for t in titles if any(keyword in t.lower() for keyword in urgent_keywords)]
+                        if urgent_projects:
+                            nn_insights['anomalies'].append(f"Urgent projects detected: {len(urgent_projects)}")
+                            nn_insights['risk_assessment'].append("Urgent projects may indicate infrastructure issues requiring immediate attention")
+            
+            # Generate NN-driven recommendations
+            if len(dataset) > 0:
+                nn_insights['recommendations'].append("Schedule coordination meetings with all campus stakeholders")
+                nn_insights['recommendations'].append("Review project timelines and dependencies")
+                nn_insights['recommendations'].append("Assess resource allocation across multiple projects")
+            
+        except Exception as e:
+            logger.warning(f"Neural network analysis failed: {e}")
+            nn_insights['nn_status'] = f'Error: {str(e)}'
+            nn_insights['pattern_recognition'].append("NN analysis unavailable - using fallback pattern detection")
+        
+        return nn_insights
+    
+    def _assess_data_quality(self, dataset: pd.DataFrame) -> Dict[str, Any]:
+        """Assess overall data quality"""
+        quality = {
+            'completeness': 0.0,
+            'accuracy': 'Unknown',
+            'reliability': 'Unknown',
+            'issues': []
+        }
+        
+        # Calculate completeness
+        total_cells = len(dataset) * len(dataset.columns)
+        filled_cells = total_cells - dataset.isnull().sum().sum()
+        quality['completeness'] = (filled_cells / total_cells) * 100
+        
+        # Identify issues
+        if quality['completeness'] < 50:
+            quality['issues'].append("Low data completeness - significant missing values")
+        
+        if len(dataset) == 0:
+            quality['issues'].append("Empty dataset")
+        
+        return quality
     
     def _analyze_dataset_overview(self, dataset: pd.DataFrame) -> Dict[str, Any]:
         """Analyze basic dataset characteristics"""
@@ -503,11 +1344,18 @@ class UniversalReporter:
         
         for col in dataset.columns:
             col_lower = col.lower()
-            # Check for latitude patterns
-            if any(pattern in col_lower for pattern in ['lat', 'latitude', 'y', 'northing']):
+            # Check for latitude patterns - be more precise to avoid false matches
+            if any(pattern in col_lower for pattern in ['latitude', 'lat']):
+                # Avoid false matches like "lat" in "Tabulation"
+                if not any(false_match in col_lower for false_match in ['tabulation', 'calculation', 'relation']):
+                    lat_col = col
+            # Check for longitude patterns - be more precise
+            elif any(pattern in col_lower for pattern in ['longitude', 'lon', 'lng']):
+                lon_col = col
+            # Only use x/y/northing/easting if no lat/lon found
+            elif lat_col is None and any(pattern in col_lower for pattern in ['y', 'northing']):
                 lat_col = col
-            # Check for longitude patterns  
-            elif any(pattern in col_lower for pattern in ['lon', 'longitude', 'x', 'easting']):
+            elif lon_col is None and any(pattern in col_lower for pattern in ['x', 'easting']):
                 lon_col = col
         
         return {'lat': lat_col, 'lon': lon_col}

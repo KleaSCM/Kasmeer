@@ -251,13 +251,17 @@ def _configure_column_mappings(dataset_config: DatasetConfig, dataset_type: str,
                 console.print(f"[red]❌ Column '{original_col}' not found![/red]")
 
 @dataset_setup.command()
+@dataset_setup.command()
 @click.option('--config-path', default='config.yaml', help='Path to configuration file')
 @click.option('--output-path', help='Output path for the template')
 @log_performance(logger)
 def create_template(config_path, output_path):
-    """Create a template configuration for a new dataset type"""
+    # Entry point: CLI command to create a new dataset configuration template
+    # Helps users scaffold a dataset config interactively and optionally save it to file
+    
     logger.info(f"Creating dataset template with config: {config_path}")
     
+    # ────── Display header panel in terminal ──────
     console.print(Panel.fit(
         "[bold blue]📝 Dataset Template Creation[/bold blue]\n"
         "This will help you create a template for a new dataset type.",
@@ -265,43 +269,50 @@ def create_template(config_path, output_path):
     ))
     
     try:
+        # ────── Load the existing dataset config (or fallback/defaults) ──────
         dataset_config = DatasetConfig(config_path)
         
-        # Get dataset type name
+        # ────── Ask user to name the new dataset type ──────
         dataset_type = Prompt.ask("Enter dataset type name (e.g., 'soil_data', 'traffic_data')")
         if not dataset_type:
             console.print("[red]❌ Dataset type name is required![/red]")
             return
         
-        # Create template
+        # ────── Create a blank template entry for the dataset ──────
+        # This pulls in default structure: enabled flag, empty patterns/columns
         template = dataset_config.create_dataset_template(dataset_type)
         
-        # Customize template
+        # ────── Show base template name ──────
         console.print(f"\n[bold]Template for '{dataset_type}':[/bold]")
         
-        # File patterns
+        # ────── Prompt user for file matching patterns ──────
+        # These patterns help locate files in the data directory (e.g., '*soil_data*')
         patterns = Prompt.ask("Enter file patterns (comma-separated)", 
                              default="*" + dataset_type.lower() + "*")
         template['file_patterns'] = [p.strip() for p in patterns.split(',')]
         
-        # Required columns
+        # ────── Prompt for required columns ──────
+        # These are must-have columns for ingestion or processing to succeed
         required_cols = Prompt.ask("Enter required columns (comma-separated)")
         if required_cols:
             template['required_columns'] = [col.strip() for col in required_cols.split(',')]
         
-        # Optional columns
+        # ────── Prompt for optional columns ──────
+        # These are columns that enrich the dataset but aren't strictly required
         optional_cols = Prompt.ask("Enter optional columns (comma-separated)")
         if optional_cols:
             template['optional_columns'] = [col.strip() for col in optional_cols.split(',')]
         
-        # Coordinate generation
+        # ────── Ask if this dataset should auto-generate coordinates ──────
+        # Useful for datasets without lat/lon — can simulate based on method
         if Confirm.ask("Enable coordinate generation?"):
             template['coordinate_generation']['enabled'] = True
             template['coordinate_generation']['method'] = Prompt.ask(
                 "Coordinate generation method", 
-                choices=['random_distribution', 'clustering'],
+                choices=['random_distribution', 'clustering'],  # Available generation types
                 default='random_distribution'
             )
+
         
         # Save template
         if output_path:

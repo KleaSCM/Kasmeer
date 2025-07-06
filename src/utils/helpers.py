@@ -421,9 +421,18 @@ def find_coordinate_columns(df: pd.DataFrame) -> Tuple[Optional[str], Optional[s
     # Case-insensitive search for coordinate columns
     for col in df.columns:
         col_lower = col.lower()
-        if any(x in col_lower for x in ['lat', 'latitude', 'y']):
+        # Check for latitude patterns - be more precise to avoid false matches
+        if any(pattern in col_lower for pattern in ['latitude', 'lat']):
+            # Avoid false matches like "lat" in "Tabulation"
+            if not any(false_match in col_lower for false_match in ['tabulation', 'calculation', 'relation']):
+                lat_col = col
+        # Check for longitude patterns - be more precise
+        elif any(pattern in col_lower for pattern in ['longitude', 'lon', 'lng']):
+            lon_col = col
+        # Only use x/y if no lat/lon found
+        elif lat_col is None and 'y' in col_lower:
             lat_col = col
-        if any(x in col_lower for x in ['lon', 'lng', 'longitude', 'x']):
+        elif lon_col is None and 'x' in col_lower:
             lon_col = col
     
     return lat_col, lon_col

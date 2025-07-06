@@ -97,15 +97,39 @@ class DatasetConfig:
                 'visuals_dir': 'visuals'       # Path for charts, images, visual outputs
             },
             'datasets': {
-                'infrastructure': {
+                'buildings': {
                     'enabled': True,
-                    'file_patterns': ['*infrastructure*', '*pipes*', '*drainage*', '*INF_DRN*', '*INF*'],
-                    'required_columns': [],       # Dataset agnostic - no fixed schema
+                    'file_patterns': ['*Building*', '*building*', '*Buildings*', '*buildings*', '*Footprint*', '*footprint*'],
+                    'required_columns': [],
                     'optional_columns': []
                 },
-                'vegetation': {
+                'infrastructure': {
                     'enabled': True,
-                    'file_patterns': ['*vegetation*', '*zones*', '*VegetationZones*'],
+                    'file_patterns': ['*Infrastructure*', '*infrastructure*', '*Active_Projects*', '*Capital_Project*', '*Street_Closure*', '*Roadway_Work*'],
+                    'required_columns': [],
+                    'optional_columns': []
+                },
+                'construction': {
+                    'enabled': True,
+                    'file_patterns': ['*Construction*', '*construction*', '*Building_and_Safety*', '*Permit*', '*permit*', '*Contractor*'],
+                    'required_columns': [],
+                    'optional_columns': []
+                },
+                'traffic': {
+                    'enabled': True,
+                    'file_patterns': ['*Traffic*', '*traffic*', '*Street*', '*street*', '*Road*', '*road*'],
+                    'required_columns': [],
+                    'optional_columns': []
+                },
+                'parks': {
+                    'enabled': True,
+                    'file_patterns': ['*Park*', '*park*', '*Parks*', '*parks*'],
+                    'required_columns': [],
+                    'optional_columns': []
+                },
+                'geographic': {
+                    'enabled': True,
+                    'file_patterns': ['*Boundary*', '*boundary*', '*Census*', '*census*', '*ZIP*', '*zip*', '*Community*', '*community*'],
                     'required_columns': [],
                     'optional_columns': []
                 },
@@ -128,8 +152,8 @@ class DatasetConfig:
                 'data_mappings': {
                     'column_mappings': {},         # No remapping defined initially
                     'coordinate_mappings': {
-                        'lat': ['latitude', 'lat', 'y', 'Y'],     # Accepted lat column names
-                        'lon': ['longitude', 'lon', 'x', 'X']     # Accepted lon column names
+                        'lat': ['latitude', 'lat', 'y', 'Y', 'Latitude/Longitude'],     # Accepted lat column names
+                        'lon': ['longitude', 'lon', 'x', 'X', 'Longitude']     # Accepted lon column names
                     }
                 }
             }

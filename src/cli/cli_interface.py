@@ -62,6 +62,20 @@ def train(data_dir, model_dir):
             progress.update(task, description="Discovering and loading datasets...")
             loaded_data = data_processor.discover_and_load_all_data()
             
+            # DEBUG: Show what datasets were loaded
+            console.print("\n📊 DATASETS LOADED:")
+            console.print("=" * 50)
+            for name, data in loaded_data.items():
+                if hasattr(data, '__len__'):
+                    console.print(f"  ✅ {name}: {len(data):,} records, {len(data.columns)} columns")
+                else:
+                    console.print(f"  ✅ {name}: raster/geospatial data")
+            console.print("=" * 50)
+            
+            if not loaded_data:
+                console.print("[red]❌ No datasets found to analyze[/red]")
+                return
+            
             progress.update(task, description="Creating spatial indexes...")
             spatial_data = data_processor.create_spatial_index()
             
@@ -580,468 +594,272 @@ def use_version(version_id, model_dir):
         console.print(f"[red]❌ Error switching version: {e}[/red]")
 
 @cli.command()
-@click.option('--data-dir', default='DataSets', help='Directory containing datasets')
-@click.option('--dataset-type', help='Type of dataset to analyze')
-@click.option('--output', '-o', help='Output file for analysis results (JSON format)')
-@click.option('--location', help='Location context (lat,lon format)')
-@click.option('--comprehensive', '-c', is_flag=True, help='Run comprehensive system analysis')
-@log_performance(logger)
-def analyze(data_dir, dataset_type, output, location, comprehensive):
-    """Perform comprehensive analysis using the Universal Reporter"""
-    logger.info(f"analyze command: data_dir={data_dir}, dataset_type={dataset_type}, output={output}, comprehensive={comprehensive}")
+@click.option('--location', help='Location coordinates (lat,lon) or address')
+@click.option('--data-dir', default='DataSets', help='Data directory path')
+@click.option('--output', help='Output file path (optional)')
+def analyze(location: str, data_dir: str, output: str):
+    """Analyze civil engineering data for a specific location"""
+    console = Console()
     
     try:
-        if comprehensive:
-            from ..core.system_integration import SystemIntegration
-            system = SystemIntegration()
-            data_processor = DataProcessor(data_dir)
-            loaded_data = data_processor.discover_and_load_all_data()
-            if not loaded_data:
-                console.print("[red]❌ No datasets found to analyze[/red]")
-                return
-            with Progress(
-                SpinnerColumn(),
-                TextColumn("[progress.description]{task.description}"),
-                console=console
-            ) as progress:
-                task = progress.add_task("Running comprehensive system analysis...", total=None)
-                # Auto-select location if not provided
-                if not location:
-                    # Find the dataset with the most records and use its coordinates
-                    max_records = 0
-                    selected_location = None
+        # Parse location
+        if not location:
+            console.print("[red]❌ Please provide a location (--location lat,lon)[/red]")
+            return
+            
+        # Parse coordinates
+        try:
+            lat, lon = map(float, location.split(','))
+            console.print(f"📍 Analyzing location: {lat}, {lon}")
+        except:
+            console.print("[red]❌ Invalid location format. Use: --location lat,lon[/red]")
+            return
+        
+        # Load data
+        data_processor = DataProcessor(data_dir)
+        loaded_data = data_processor.discover_and_load_all_data()
+        
+        if not loaded_data:
+            console.print("[red]❌ No datasets found[/red]")
+            return
+        
+        # Show available coordinates in datasets
+        console.print("\n[bold]Available Data Locations:[/bold]")
+        for dataset_name, dataset in loaded_data.items():
+            lat_col, lon_col = find_coordinate_columns(dataset)
+            if lat_col and lon_col:
+                try:
+                    lat_numeric = pd.to_numeric(dataset[lat_col], errors='coerce')
+                    lon_numeric = pd.to_numeric(dataset[lon_col], errors='coerce')
                     
-                    for dataset_name, dataset in loaded_data.items():
-                        if len(dataset) > max_records:
-                            # Try to find coordinates in this dataset
-                            coord_cols = find_coordinate_columns(dataset)
-                            if coord_cols['lat'] and coord_cols['lon']:
-                                try:
-                                    # Get a sample coordinate
-                                    lat_val = dataset[coord_cols['lat']].iloc[0]
-                                    lon_val = dataset[coord_cols['lon']].iloc[0]
-                                    if pd.notna(lat_val) and pd.notna(lon_val):
-                                        selected_location = {'lat': float(lat_val), 'lon': float(lon_val)}
-                                        max_records = len(dataset)
-                                        console.print(f"Auto-selected location from {dataset_name}: ({lat_val}, {lon_val}) (records: {len(dataset)})")
-                                        break
-                                except Exception as e:
-                                    logger.warning(f"Failed to extract coordinates from {dataset_name}: {e}")
-                    
-                    if selected_location:
-                        location = selected_location
-                        lat, lon = selected_location['lat'], selected_location['lon']
+                    # Get sample coordinates
+                    valid_coords = dataset[lat_numeric.notna() & lon_numeric.notna()]
+                    if len(valid_coords) > 0:
+                        sample_lat = valid_coords[lat_col].iloc[0]
+                        sample_lon = valid_coords[lon_col].iloc[0]
+                        console.print(f"• {dataset_name}: Sample location {sample_lat}, {sample_lon} ({len(valid_coords):,} records)")
                     else:
-                        # If no coordinates found, analyze all data without location filtering
-                        console.print("No coordinate data found - analyzing all datasets without location filtering")
-                        location = None
-                        lat, lon = 0.0, 0.0
-                
-                # Filter datasets by location if specified, otherwise use full datasets
-                if location:
-                    filtered_datasets = {}
-                    for dataset_name, dataset in loaded_data.items():
-                        filtered_data = filter_by_location(dataset, lat, lon)
-                        if len(filtered_data) > 0:
-                            filtered_datasets[dataset_name] = filtered_data
-                        else:
-                            # If no data found for location, use full dataset
-                            console.print(f"No data found for location in {dataset_name} - using full dataset")
-                            filtered_datasets[dataset_name] = dataset
+                        console.print(f"• {dataset_name}: No valid coordinates found")
+                except Exception as e:
+                    console.print(f"• {dataset_name}: Error reading coordinates - {e}")
+            else:
+                console.print(f"• {dataset_name}: No coordinate columns found")
+        
+        console.print(f"\n[bold]Searching for data near: {lat}, {lon}[/bold]")
+        
+        # Filter data for the specific location (within 1km)
+        location_data = {}
+        for dataset_name, dataset in loaded_data.items():
+            lat_col, lon_col = find_coordinate_columns(dataset)
+            if lat_col and lon_col:
+                try:
+                    # Convert coordinates to numeric, ignoring errors
+                    lat_numeric = pd.to_numeric(dataset[lat_col], errors='coerce')
+                    lon_numeric = pd.to_numeric(dataset[lon_col], errors='coerce')
                     
-                    # If no filtered data found, use original datasets
-                    if not any(len(dataset) > 0 for dataset in filtered_datasets.values()):
-                        console.print("No location-specific data found - analyzing all datasets")
-                        filtered_datasets = loaded_data
-                else:
-                    # No location specified, use all datasets
-                    filtered_datasets = loaded_data
-                
-                # Now run the analysis for the filtered datasets
-                all_results = {}
-                for dataset_name, dataset in filtered_datasets.items():
-                    progress.update(task, description=f"Comprehensive analysis of {dataset_name}...")
-                    all_results[dataset_name] = system.analyze_dataset_comprehensive(
-                        dataset, 
-                        dataset_type=dataset_type,
-                        location=location
+                    # Filter to within 1km of the location
+                    distances = np.sqrt(
+                        (lat_numeric - lat)**2 + 
+                        (lon_numeric - lon)**2
                     )
-                
-                # Generate and display comprehensive report
-                console.print("\n" + "="*80)
-                console.print("[bold blue]🏗️ CIVIL ENGINEERING AI ANALYSIS REPORT[/bold blue]")
-                console.print("="*80)
-                
-                if location:
-                    console.print(f"[bold]Location:[/bold] {location}")
-                    console.print(f"[bold]Coordinates:[/bold] {lat}, {lon}")
-                console.print(f"[bold]Analysis Date:[/bold] {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-                console.print(f"[bold]Datasets Analyzed:[/bold] {len(all_results)}")
-                console.print()
-                
-                # Executive Summary
-                console.print("[bold cyan]📋 EXECUTIVE SUMMARY[/bold cyan]")
-                console.print("-" * 40)
-                total_records = sum(result.get('dataset_overview', {}).get('total_records', 0) for result in all_results.values())
-                console.print(f"• Total records analyzed: {total_records:,}")
-                console.print(f"• Dataset types: {', '.join(all_results.keys())}")
-                console.print()
-                
-                # Per-dataset analysis
-                for dataset_name, result in all_results.items():
-                    console.print(f"\n[bold cyan]📊 {dataset_name.upper()} ANALYSIS[/bold cyan]")
-                    console.print("-" * 40)
-                    
-                    # Dataset overview
-                    overview = result.get('dataset_overview', {})
-                    console.print(f"• Records: {overview.get('total_records', 0):,}")
-                    console.print(f"• Columns: {overview.get('total_columns', 0)}")
-                    
-                    # Show actual data insights
-                    if dataset_name == 'infrastructure':
-                        infra_insights = result.get('infrastructure_insights', {})
-                        pipe_analysis = infra_insights.get('pipe_analysis', {})
-                        material_analysis = infra_insights.get('material_analysis', {})
-                        dimension_analysis = infra_insights.get('dimension_analysis', {})
-                        
-                        if material_analysis.get('material_distributions'):
-                            console.print("\n[bold]Pipe Materials:[/bold]")
-                            for col, materials in material_analysis['material_distributions'].items():
-                                for material, count in list(materials.items())[:5]:  # Show top 5
-                                    console.print(f"  • {material}: {count:,} pipes")
-                        
-                        if dimension_analysis.get('dimension_statistics'):
-                            console.print("\n[bold]Pipe Dimensions:[/bold]")
-                            for col, stats in dimension_analysis['dimension_statistics'].items():
-                                console.print(f"  • {col}: {stats['mean']:.1f} avg ({stats['min']:.1f}-{stats['max']:.1f})")
-                    
-                    elif dataset_name == 'wind':
-                        env_insights = result.get('environmental_insights', {})
-                        climate_analysis = env_insights.get('climate_analysis', {})
-                        
-                        if climate_analysis.get('climate_stations'):
-                            console.print(f"\n[bold]Wind Data:[/bold]")
-                            console.print(f"• {climate_analysis['climate_stations']:,} wind measurements")
-                            
-                            # Show wind statistics
-                            for col, stats in climate_analysis.items():
-                                if col.endswith('_stats') and isinstance(stats, dict):
-                                    metric_name = col.replace('_stats', '').replace('_', ' ').title()
-                                    console.print(f"• {metric_name}: {stats['mean']:.1f} avg ({stats['min']:.1f}-{stats['max']:.1f})")
-                    
-                    elif dataset_name == 'climate':
-                        env_insights = result.get('environmental_insights', {})
-                        climate_analysis = env_insights.get('climate_analysis', {})
-                        
-                        if climate_analysis.get('climate_stations'):
-                            console.print(f"\n[bold]Climate Data:[/bold]")
-                            console.print(f"• {climate_analysis['climate_stations']:,} climate records")
-                            
-                            # Show climate statistics
-                            for col, stats in climate_analysis.items():
-                                if col.endswith('_stats') and isinstance(stats, dict):
-                                    metric_name = col.replace('_stats', '').replace('_', ' ').title()
-                                    console.print(f"• {metric_name}: {stats['mean']:.1f} avg ({stats['min']:.1f}-{stats['max']:.1f})")
-                    
-                    elif dataset_name == 'vegetation':
-                        env_insights = result.get('environmental_insights', {})
-                        vegetation_analysis = env_insights.get('vegetation_analysis', {})
-                        
-                        if vegetation_analysis.get('vegetation_zones'):
-                            console.print(f"\n[bold]Vegetation Data:[/bold]")
-                            console.print(f"• {vegetation_analysis['vegetation_zones']:,} vegetation zones")
-                            
-                            # Show vegetation statistics
-                            for col, stats in vegetation_analysis.items():
-                                if col.endswith('_stats') and isinstance(stats, dict):
-                                    metric_name = col.replace('_stats', '').replace('_', ' ').title()
-                                    console.print(f"• {metric_name}: {stats['mean']:.1f} avg ({stats['min']:.1f}-{stats['max']:.1f})")
-                    
-                    # Data quality insights
-                    quality = result.get('data_quality', {})
-                    if quality.get('completeness_score', 0) > 0:
-                        console.print(f"\n[bold]Data Quality:[/bold] {quality['completeness_score']:.1f}% complete")
-                    
-                    # Anomalies
-                    anomalies = result.get('anomalies', {})
-                    if anomalies.get('outliers'):
-                        console.print(f"\n[bold]Data Anomalies:[/bold] {len(anomalies['outliers'])} columns with outliers")
-                    
-                    # Recommendations
-                    recommendations = result.get('recommendations', [])
-                    if recommendations:
-                        console.print(f"\n[bold]Key Insights:[/bold]")
-                        for rec in recommendations[:3]:  # Show top 3
-                            console.print(f"• {rec}")
-                    
-                    console.print()
-                
-                # System Summary
-                if all_results:
-                    console.print("[bold cyan]🤖 AI SYSTEM ANALYSIS[/bold cyan]")
-                    console.print("-" * 40)
-                    console.print("• Universal Reporter: ✅ Comprehensive data analysis completed")
-                    console.print("• Data Quality Assessment: ✅ Validation and completeness analysis")
-                    console.print("• Risk Assessment: ✅ Structural and environmental risk evaluation")
-                    console.print("• Financial Analysis: ✅ Cost breakdown and asset evaluation")
-                    console.print()
-                
-                # Final Summary
-                console.print("[bold cyan]📈 ANALYSIS SUMMARY[/bold cyan]")
-                console.print("-" * 40)
-                if all_results:
-                    console.print("✅ Comprehensive engineering analysis completed successfully")
-                    console.print("✅ All datasets processed and analyzed")
-                    console.print("✅ Risk assessments generated")
-                    console.print("✅ Recommendations and action items identified")
-                else:
-                    console.print("❌ No data found for the specified location")
-                    console.print("💡 Try a different location or run without location filter")
-                
-                console.print("\n" + "="*80)
-                console.print("[bold blue]🏗️ END OF CIVIL ENGINEERING AI ANALYSIS REPORT[/bold blue]")
-                console.print("="*80)
-        else:
-            universal_reporter = UniversalReporter()
-            data_processor = DataProcessor(data_dir)
-            loaded_data = data_processor.discover_and_load_all_data()
-            if not loaded_data:
-                console.print("[red]❌ No datasets found to analyze[/red]")
-                return
-            with Progress(
-                SpinnerColumn(),
-                TextColumn("[progress.description]{task.description}"),
-                console=console
-            ) as progress:
-                task = progress.add_task("Running comprehensive system analysis...", total=None)
-                # Auto-select location if not provided
-                if not location:
-                    # Find the dataset with the most records and use its coordinates
-                    max_records = 0
-                    selected_location = None
-                    
-                    for dataset_name, dataset in loaded_data.items():
-                        if len(dataset) > max_records:
-                            # Try to find coordinates in this dataset
-                            coord_cols = find_coordinate_columns(dataset)
-                            if coord_cols['lat'] and coord_cols['lon']:
-                                try:
-                                    # Get a sample coordinate
-                                    lat_val = dataset[coord_cols['lat']].iloc[0]
-                                    lon_val = dataset[coord_cols['lon']].iloc[0]
-                                    if pd.notna(lat_val) and pd.notna(lon_val):
-                                        selected_location = {'lat': float(lat_val), 'lon': float(lon_val)}
-                                        max_records = len(dataset)
-                                        console.print(f"Auto-selected location from {dataset_name}: ({lat_val}, {lon_val}) (records: {len(dataset)})")
-                                        break
-                                except Exception as e:
-                                    logger.warning(f"Failed to extract coordinates from {dataset_name}: {e}")
-                    
-                    if selected_location:
-                        location = selected_location
-                        lat, lon = selected_location['lat'], selected_location['lon']
+                    nearby_data = dataset[distances <= 0.01]  # 1km = 0.01 degrees
+                    if len(nearby_data) > 0:
+                        location_data[dataset_name] = nearby_data
+                        console.print(f"✅ {dataset_name}: {len(nearby_data):,} records near location")
                     else:
-                        # If no coordinates found, analyze all data without location filtering
-                        console.print("No coordinate data found - analyzing all datasets without location filtering")
-                        location = None
-                        lat, lon = 0.0, 0.0
-                
-                # Filter datasets by location if specified, otherwise use full datasets
-                if location:
-                    filtered_datasets = {}
-                    for dataset_name, dataset in loaded_data.items():
-                        filtered_data = filter_by_location(dataset, lat, lon)
-                        if len(filtered_data) > 0:
-                            filtered_datasets[dataset_name] = filtered_data
-                        else:
-                            # If no data found for location, use full dataset
-                            console.print(f"No data found for location in {dataset_name} - using full dataset")
-                            filtered_datasets[dataset_name] = dataset
-                    
-                    # If no filtered data found, use original datasets
-                    if not any(len(dataset) > 0 for dataset in filtered_datasets.values()):
-                        console.print("No location-specific data found - analyzing all datasets")
-                        filtered_datasets = loaded_data
-                else:
-                    # No location specified, use all datasets
-                    filtered_datasets = loaded_data
-                
-                # Now run the analysis for the filtered datasets
-                all_results = {}
-                for dataset_name, dataset in filtered_datasets.items():
-                    progress.update(task, description=f"Comprehensive analysis of {dataset_name}...")
-                    all_results[dataset_name] = universal_reporter.analyze_dataset(
-                        dataset, 
-                        dataset_type=dataset_type,
-                        location=location
-                    )
-                
-                # Generate and display comprehensive report
-                console.print("\n" + "="*80)
-                console.print("[bold blue]🏗️ CIVIL ENGINEERING AI ANALYSIS REPORT[/bold blue]")
-                console.print("="*80)
-                
-                if location:
-                    console.print(f"[bold]Location:[/bold] {location}")
-                    console.print(f"[bold]Coordinates:[/bold] {lat}, {lon}")
-                console.print(f"[bold]Analysis Date:[/bold] {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-                console.print(f"[bold]Datasets Analyzed:[/bold] {len(all_results)}")
-                console.print()
-                
-                # Executive Summary
-                console.print("[bold cyan]📋 EXECUTIVE SUMMARY[/bold cyan]")
-                console.print("-" * 40)
-                total_records = sum(result.get('dataset_overview', {}).get('total_records', 0) for result in all_results.values())
-                console.print(f"• Total records analyzed: {total_records:,}")
-                console.print(f"• Dataset types: {', '.join(all_results.keys())}")
-                console.print()
-                
-                # Per-dataset analysis
-                for dataset_name, result in all_results.items():
-                    console.print(f"\n[bold cyan]📊 {dataset_name.upper()} ANALYSIS[/bold cyan]")
-                    console.print("-" * 40)
-                    
-                    # Dataset overview
-                    overview = result.get('dataset_overview', {})
-                    console.print(f"• Records: {overview.get('total_records', 0):,}")
-                    console.print(f"• Columns: {overview.get('total_columns', 0)}")
-                    
-                    # Show actual data insights
-                    if dataset_name == 'infrastructure':
-                        infra_insights = result.get('infrastructure_insights', {})
-                        pipe_analysis = infra_insights.get('pipe_analysis', {})
-                        material_analysis = infra_insights.get('material_analysis', {})
-                        dimension_analysis = infra_insights.get('dimension_analysis', {})
-                        
-                        if material_analysis.get('material_distributions'):
-                            console.print("\n[bold]Pipe Materials:[/bold]")
-                            for col, materials in material_analysis['material_distributions'].items():
-                                for material, count in list(materials.items())[:5]:  # Show top 5
-                                    console.print(f"  • {material}: {count:,} pipes")
-                        
-                        if dimension_analysis.get('dimension_statistics'):
-                            console.print("\n[bold]Pipe Dimensions:[/bold]")
-                            for col, stats in dimension_analysis['dimension_statistics'].items():
-                                console.print(f"  • {col}: {stats['mean']:.1f} avg ({stats['min']:.1f}-{stats['max']:.1f})")
-                    
-                    elif dataset_name == 'wind':
-                        env_insights = result.get('environmental_insights', {})
-                        climate_analysis = env_insights.get('climate_analysis', {})
-                        
-                        if climate_analysis.get('climate_stations'):
-                            console.print(f"\n[bold]Wind Data:[/bold]")
-                            console.print(f"• {climate_analysis['climate_stations']:,} wind measurements")
-                            
-                            # Show wind statistics
-                            for col, stats in climate_analysis.items():
-                                if col.endswith('_stats') and isinstance(stats, dict):
-                                    metric_name = col.replace('_stats', '').replace('_', ' ').title()
-                                    console.print(f"• {metric_name}: {stats['mean']:.1f} avg ({stats['min']:.1f}-{stats['max']:.1f})")
-                    
-                    elif dataset_name == 'climate':
-                        env_insights = result.get('environmental_insights', {})
-                        climate_analysis = env_insights.get('climate_analysis', {})
-                        
-                        if climate_analysis.get('climate_stations'):
-                            console.print(f"\n[bold]Climate Data:[/bold]")
-                            console.print(f"• {climate_analysis['climate_stations']:,} climate records")
-                            
-                            # Show climate statistics
-                            for col, stats in climate_analysis.items():
-                                if col.endswith('_stats') and isinstance(stats, dict):
-                                    metric_name = col.replace('_stats', '').replace('_', ' ').title()
-                                    console.print(f"• {metric_name}: {stats['mean']:.1f} avg ({stats['min']:.1f}-{stats['max']:.1f})")
-                    
-                    elif dataset_name == 'vegetation':
-                        env_insights = result.get('environmental_insights', {})
-                        vegetation_analysis = env_insights.get('vegetation_analysis', {})
-                        
-                        if vegetation_analysis.get('vegetation_zones'):
-                            console.print(f"\n[bold]Vegetation Data:[/bold]")
-                            console.print(f"• {vegetation_analysis['vegetation_zones']:,} vegetation zones")
-                            
-                            # Show vegetation statistics
-                            for col, stats in vegetation_analysis.items():
-                                if col.endswith('_stats') and isinstance(stats, dict):
-                                    metric_name = col.replace('_stats', '').replace('_', ' ').title()
-                                    console.print(f"• {metric_name}: {stats['mean']:.1f} avg ({stats['min']:.1f}-{stats['max']:.1f})")
-                    
-                    # Data quality insights
-                    quality = result.get('data_quality', {})
-                    if quality.get('completeness_score', 0) > 0:
-                        console.print(f"\n[bold]Data Quality:[/bold] {quality['completeness_score']:.1f}% complete")
-                    
-                    # Anomalies
-                    anomalies = result.get('anomalies', {})
-                    if anomalies.get('outliers'):
-                        console.print(f"\n[bold]Data Anomalies:[/bold] {len(anomalies['outliers'])} columns with outliers")
-                    
-                    # Recommendations
-                    recommendations = result.get('recommendations', [])
-                    if recommendations:
-                        console.print(f"\n[bold]Key Insights:[/bold]")
-                        for rec in recommendations[:3]:  # Show top 3
-                            console.print(f"• {rec}")
-                    
-                    console.print()
-                
-                # System Summary
-                if all_results:
-                    console.print("[bold cyan]🤖 AI SYSTEM ANALYSIS[/bold cyan]")
-                    console.print("-" * 40)
-                    console.print("• Universal Reporter: ✅ Comprehensive data analysis completed")
-                    console.print("• Data Quality Assessment: ✅ Validation and completeness analysis")
-                    console.print("• Risk Assessment: ✅ Structural and environmental risk evaluation")
-                    console.print("• Financial Analysis: ✅ Cost breakdown and asset evaluation")
-                    console.print()
-                
-                # Final Summary
-                console.print("[bold cyan]📈 ANALYSIS SUMMARY[/bold cyan]")
-                console.print("-" * 40)
-                if all_results:
-                    console.print("✅ Universal Reporter analysis completed successfully")
-                    console.print("✅ All datasets processed and analyzed")
-                    console.print("✅ Risk assessments generated")
-                    console.print("✅ Recommendations and action items identified")
-                else:
-                    console.print("❌ No data found for the specified location")
-                    console.print("💡 Try a different location or run without location filter")
-                
-                console.print("\n" + "="*80)
-                console.print("[bold blue]🏗️ END OF CIVIL ENGINEERING AI ANALYSIS REPORT[/bold blue]")
-                console.print("="*80)
-
-            # Save results if output specified
-            if output:
-                with open(output, 'w') as f:
-                    json.dump(all_results, f, indent=2, default=str)
-                console.print(f"[green]✅ Analysis results saved to {output}[/green]")
+                        console.print(f"❌ {dataset_name}: No data near location")
+                except Exception as e:
+                    console.print(f"❌ {dataset_name}: Error filtering data - {e}")
+            else:
+                console.print(f"⚠️ {dataset_name}: No coordinate data")
+        
+        if not location_data:
+            console.print("[red]❌ No data found near the specified location[/red]")
+            return
+        
+        # Generate report
+        console.print("\n" + "="*80)
+        console.print("[bold blue]🏗️ CIVIL ENGINEER'S SITE BRIEFING[/bold blue]")
+        console.print("="*80)
+        console.print(f"[bold]Location:[/bold] {lat}, {lon}")
+        console.print(f"[bold]Analysis Date:[/bold] {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        console.print(f"[bold]Datasets Found:[/bold] {len(location_data)}")
+        
+        # Initialize Universal Reporter for comprehensive analysis
+        from src.core.universal_reporter import UniversalReporter
+        universal_reporter = UniversalReporter()
+        
+        # Generate comprehensive site briefing for each dataset
+        for dataset_name, dataset in location_data.items():
+            console.print(f"\n[bold cyan]📊 {dataset_name.upper()} SITE BRIEFING[/bold cyan]")
+            console.print("-" * 60)
             
-            # Display comprehensive summary
-            console.print("\n[bold green]🎯 Analysis Complete![/bold green]")
+            # Get comprehensive briefing
+            briefing = universal_reporter.analyze_dataset(dataset, dataset_type=dataset_name, location={'lat': lat, 'lon': lon})
             
-            total_datasets = len(all_results)
-            total_records = sum(
-                result.get('dataset_overview', {}).get('total_records', 0) 
-                for result in all_results.values()
-            )
+            # Executive Summary
+            if 'executive_summary' in briefing:
+                summary = briefing['executive_summary']
+                console.print(f"\n[bold yellow]📋 EXECUTIVE SUMMARY[/bold yellow]")
+                console.print(f"• {summary.get('site_overview', 'No overview available')}")
+                
+                if summary.get('key_findings'):
+                    console.print(f"\n[bold]Key Findings:[/bold]")
+                    for finding in summary['key_findings']:
+                        console.print(f"  • {finding}")
+                
+                if summary.get('data_quality', {}).get('completeness'):
+                    completeness = summary['data_quality']['completeness']
+                    console.print(f"• Data Completeness: {completeness:.1f}%")
             
-            console.print(f"📊 Analyzed {total_datasets} datasets with {total_records} total records")
+            # Site Materials
+            if 'site_materials' in briefing and briefing['site_materials'].get('summary'):
+                console.print(f"\n[bold yellow]🏗️ SITE MATERIALS[/bold yellow]")
+                for material in briefing['site_materials']['summary']:
+                    console.print(f"  • {material}")
             
-            # Show top recommendations across all datasets
-            all_recommendations = []
-            for dataset_name, result in all_results.items():
-                recommendations = result.get('recommendations', [])
-                for rec in recommendations:
-                    all_recommendations.append(f"{dataset_name}: {rec}")
+            # Work History
+            if 'work_history' in briefing and briefing['work_history'].get('summary'):
+                console.print(f"\n[bold yellow]📜 WORK HISTORY[/bold yellow]")
+                for history in briefing['work_history']['summary']:
+                    console.print(f"  • {history}")
+                
+                # Show actual project details
+                if briefing['work_history'].get('project_details'):
+                    console.print(f"\n[bold]📋 PROJECT DETAILS:[/bold]")
+                    for i, project in enumerate(briefing['work_history']['project_details'][:3], 1):
+                        console.print(f"  {i}. {project['name']}")
+                        console.print(f"     Campus: {project['campus']}")
+                        console.print(f"     Project ID: {project['project_id']}")
+                        console.print(f"     Estimated Value: {project['estimated_value']}")
+                        if 'project_type' in project:
+                            console.print(f"     Project Type: {project['project_type']}")
+                        if 'address' in project:
+                            console.print(f"     Address: {project['address']}")
+                        if 'borough' in project:
+                            console.print(f"     Borough: {project['borough']}")
+                        if 'advertise_date' in project and project['advertise_date'] != 'Unknown':
+                            console.print(f"     Advertise Date: {project['advertise_date']}")
+                        if 'status' in project:
+                            console.print(f"     Status: {project['status']}")
+                        console.print()
             
-            if all_recommendations:
-                console.print("\n[bold]Top Recommendations:[/bold]")
-                for i, rec in enumerate(all_recommendations[:5], 1):
-                    console.print(f"  {i}. {rec}")
+            # Utilities & Infrastructure
+            if 'utilities_infrastructure' in briefing and briefing['utilities_infrastructure'].get('summary'):
+                console.print(f"\n[bold yellow]⚡ UTILITIES & INFRASTRUCTURE[/bold yellow]")
+                for utility in briefing['utilities_infrastructure']['summary']:
+                    console.print(f"  • {utility}")
             
+            # Environmental Context
+            if 'environmental_context' in briefing and briefing['environmental_context'].get('summary'):
+                console.print(f"\n[bold yellow]🌍 ENVIRONMENTAL CONTEXT[/bold yellow]")
+                for env in briefing['environmental_context']['summary']:
+                    console.print(f"  • {env}")
+            
+            # Costs & Funding
+            if 'costs_funding' in briefing and briefing['costs_funding'].get('summary'):
+                console.print(f"\n[bold yellow]💰 COSTS & FUNDING[/bold yellow]")
+                for cost in briefing['costs_funding']['summary']:
+                    console.print(f"  • {cost}")
+                
+                # Show detailed cost breakdown
+                if briefing['costs_funding'].get('cost_details'):
+                    console.print(f"\n[bold]💵 COST BREAKDOWN:[/bold]")
+                    for i, cost_detail in enumerate(briefing['costs_funding']['cost_details'][:3], 1):
+                        console.print(f"  {i}. {cost_detail['project']}")
+                        console.print(f"     Value: {cost_detail['estimated_value']}")
+                        console.print(f"     Campus: {cost_detail['campus']}")
+                        console.print()
+            
+            # Risks & Hazards
+            if 'risks_hazards' in briefing and briefing['risks_hazards'].get('summary'):
+                console.print(f"\n[bold yellow]⚠️ RISKS & HAZARDS[/bold yellow]")
+                for risk in briefing['risks_hazards']['summary']:
+                    console.print(f"  • {risk}")
+            
+            # Missing Data
+            if 'missing_data' in briefing:
+                missing = briefing['missing_data']
+                if missing.get('critical_missing'):
+                    console.print(f"\n[bold red]❌ CRITICAL MISSING DATA[/bold red]")
+                    for missing_item in missing['critical_missing']:
+                        console.print(f"  • {missing_item}")
+                
+                if missing.get('data_quality_issues'):
+                    console.print(f"\n[bold yellow]⚠️ DATA QUALITY ISSUES[/bold yellow]")
+                    for issue in missing['data_quality_issues']:
+                        console.print(f"  • {issue}")
+            
+            # Recommendations
+            if 'recommendations' in briefing:
+                recs = briefing['recommendations']
+                if recs.get('immediate_actions'):
+                    console.print(f"\n[bold green]🚨 IMMEDIATE ACTIONS[/bold green]")
+                    for action in recs['immediate_actions']:
+                        console.print(f"  • {action}")
+                
+                if recs.get('investigations_needed'):
+                    console.print(f"\n[bold blue]🔍 INVESTIGATIONS NEEDED[/bold blue]")
+                    for investigation in recs['investigations_needed']:
+                        console.print(f"  • {investigation}")
+                
+                if recs.get('safety_measures'):
+                    console.print(f"\n[bold red]🛡️ SAFETY MEASURES[/bold red]")
+                    for safety in recs['safety_measures']:
+                        console.print(f"  • {safety}")
+                
+                if recs.get('next_steps'):
+                    console.print(f"\n[bold cyan]📋 NEXT STEPS[/bold cyan]")
+                    for step in recs['next_steps']:
+                        console.print(f"  • {step}")
+            
+            # Neural Network Insights
+            if 'nn_insights' in briefing:
+                nn = briefing['nn_insights']
+                console.print(f"\n[bold magenta]🧠 NEURAL NETWORK INSIGHTS[/bold magenta]")
+                console.print(f"• Status: {nn.get('nn_status', 'Unknown')}")
+                
+                if nn.get('pattern_recognition'):
+                    console.print(f"• Pattern Recognition:")
+                    for pattern in nn['pattern_recognition']:
+                        console.print(f"  - {pattern}")
+                
+                if nn.get('project_analysis'):
+                    console.print(f"• Project Analysis:")
+                    for analysis in nn['project_analysis']:
+                        console.print(f"  - {analysis}")
+                
+                if nn.get('cost_analysis'):
+                    console.print(f"• Cost Analysis:")
+                    for analysis in nn['cost_analysis']:
+                        console.print(f"  - {analysis}")
+                
+                if nn.get('timeline_analysis'):
+                    console.print(f"• Timeline Analysis:")
+                    for analysis in nn['timeline_analysis']:
+                        console.print(f"  - {analysis}")
+                
+                if nn.get('risk_assessment'):
+                    console.print(f"• Risk Assessment:")
+                    for risk in nn['risk_assessment']:
+                        console.print(f"  - {risk}")
+                
+                if nn.get('recommendations'):
+                    console.print(f"• NN Recommendations:")
+                    for rec in nn['recommendations']:
+                        console.print(f"  - {rec}")
+                
+                if nn.get('anomalies'):
+                    console.print(f"• Anomalies Detected:")
+                    for anomaly in nn['anomalies']:
+                        console.print(f"  - {anomaly}")
+        
+        console.print("\n" + "="*80)
+        console.print("[bold green]✅ CIVIL ENGINEER'S SITE BRIEFING COMPLETE[/bold green]")
+        console.print("="*80)
+        
     except Exception as e:
-        console.print(f"[red]❌ Error during analysis: {e}[/red]")
+        console.print(f"[red]❌ Analysis failed: {e}[/red]")
         logger.error(f"Analysis error: {e}")
 
 @cli.command()
@@ -1061,6 +879,16 @@ def universal_analyze(data_dir, dataset_type, output, location):
         # Load data
         data_processor = DataProcessor(data_dir)
         loaded_data = data_processor.discover_and_load_all_data()
+        
+        # DEBUG: Show what datasets were loaded
+        console.print("\n📊 DATASETS LOADED:")
+        console.print("=" * 50)
+        for name, data in loaded_data.items():
+            if hasattr(data, '__len__'):
+                console.print(f"  ✅ {name}: {len(data):,} records, {len(data.columns)} columns")
+            else:
+                console.print(f"  ✅ {name}: raster/geospatial data")
+        console.print("=" * 50)
         
         if not loaded_data:
             console.print("[red]❌ No datasets found to analyze[/red]")
