@@ -83,6 +83,7 @@ class CivilEngineeringSystem:
         input_dim = 20
         
         model = CivilEngineeringNN(input_dim, output_dim)
+        model = model.to(self.device)
         self.model = model
         return model
     
